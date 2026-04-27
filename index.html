@@ -67,10 +67,11 @@
     }
 
     .intro {
-      max-width: 640px;
+      max-width: 100%;
       margin: 24px 0 0;
       color: #4a4a4a;
       font-size: 18px;
+      white-space: nowrap;
     }
 
     .grid {
@@ -260,6 +261,10 @@
         padding: 54px 0 40px;
       }
 
+      .intro {
+        white-space: normal;
+      }
+
       .grid {
         grid-template-columns: 1fr;
       }
@@ -279,7 +284,7 @@
       </header>
 
       <section class="hero">
-        <h1>Study notes for embodied intelligence.</h1>
+        <h1>Study notes for Physical AI.</h1>
         <p class="intro">
           개인적으로 공부한 논문, 발표자료, 구현 메모를 모아두는 공간입니다.
           지금은 RL, humanoid, manipulation 주제를 중심으로 정리합니다.

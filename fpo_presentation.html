@@ -4,6 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FPO: Likelihood, ELBO, CFM Loss</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"]],
+        displayMath: [["\\[", "\\]"]]
+      },
+      chtml: {
+        scale: 1.05,
+        matchFontHeight: false
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
   <style>
     * {
       box-sizing: border-box;
@@ -12,23 +25,53 @@
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
+      background: #f7f7f5;
+      color: #111111;
       line-height: 1.65;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
     .page {
       max-width: 1080px;
       margin: 0 auto;
-      padding: 48px 24px 80px;
+      padding: 56px 24px 80px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      padding-bottom: 42px;
+      border-bottom: 1px solid #d9d9d4;
+      margin-bottom: 52px;
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .back {
+      color: #565656;
+      font-size: 14px;
+      font-weight: 750;
+      transition: color 160ms ease;
+    }
+
+    .back:hover {
+      color: #111111;
     }
 
     .hero {
-      background: linear-gradient(135deg, #1e293b, #111827);
-      border: 1px solid rgba(148, 163, 184, 0.25);
-      border-radius: 28px;
-      padding: 42px;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      background: #ffffff;
+      border: 1px solid #d6d6d0;
+      border-radius: 8px;
+      padding: 34px;
       margin-bottom: 36px;
     }
 
@@ -38,26 +81,26 @@
       gap: 8px;
       padding: 6px 14px;
       border-radius: 999px;
-      background: rgba(59, 130, 246, 0.16);
-      color: #93c5fd;
-      font-weight: 700;
+      border: 1px solid #111111;
+      color: #111111;
+      font-weight: 800;
       font-size: 14px;
       margin-bottom: 18px;
     }
 
     h1 {
       margin: 0;
-      font-size: 42px;
-      line-height: 1.2;
-      letter-spacing: -0.04em;
-      color: #ffffff;
+      font-size: clamp(38px, 5vw, 58px);
+      line-height: 1.08;
+      letter-spacing: 0;
+      color: #111111;
     }
 
     .subtitle {
       margin-top: 18px;
-      max-width: 860px;
-      color: #cbd5e1;
-      font-size: 19px;
+      max-width: 920px;
+      color: #4a4a4a;
+      font-size: 18px;
     }
 
     .flow {
@@ -68,23 +111,22 @@
     }
 
     .flow-item {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 18px;
+      background: #fbfbfa;
+      border: 1px solid #d6d6d0;
+      border-radius: 8px;
       padding: 16px;
       text-align: center;
       font-weight: 800;
-      color: #bfdbfe;
+      color: #111111;
       font-size: 14px;
     }
 
     .section {
-      background: #111827;
-      border: 1px solid rgba(148, 163, 184, 0.18);
-      border-radius: 24px;
+      background: #ffffff;
+      border: 1px solid #d6d6d0;
+      border-radius: 8px;
       padding: 30px;
-      margin-bottom: 24px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.22);
+      margin-bottom: 18px;
     }
 
     .section-header {
@@ -100,9 +142,9 @@
       flex: 0 0 auto;
       display: grid;
       place-items: center;
-      border-radius: 14px;
-      background: #2563eb;
-      color: white;
+      border-radius: 8px;
+      background: #111111;
+      color: #ffffff;
       font-weight: 900;
       font-size: 20px;
     }
@@ -111,46 +153,51 @@
       margin: 0;
       font-size: 27px;
       line-height: 1.25;
-      color: #f8fafc;
-      letter-spacing: -0.02em;
+      color: #111111;
+      letter-spacing: 0;
     }
 
     p {
       margin: 12px 0;
-      color: #cbd5e1;
+      color: #444444;
       font-size: 17px;
     }
 
     .formula {
       margin: 20px 0;
       padding: 20px;
-      border-radius: 18px;
-      background: #020617;
-      border: 1px solid rgba(96, 165, 250, 0.28);
-      color: #dbeafe;
-      font-family: "SFMono-Regular", Consolas, Menlo, monospace;
-      font-size: 20px;
+      border-radius: 8px;
+      background: #f2f2ef;
+      border: 1px solid #d6d6d0;
+      color: #111111;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 22px;
       text-align: center;
       overflow-x: auto;
+    }
+
+    .formula mjx-container {
+      margin: 0;
+      font-size: 112%;
     }
 
     .note {
       margin-top: 18px;
       padding: 16px 18px;
-      border-radius: 16px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.28);
-      color: #bbf7d0;
+      border-radius: 8px;
+      background: #f7f7f5;
+      border: 1px solid #c8c8c2;
+      color: #222222;
       font-weight: 700;
     }
 
     .warning {
       margin-top: 18px;
       padding: 16px 18px;
-      border-radius: 16px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.28);
-      color: #fecaca;
+      border-radius: 8px;
+      background: #111111;
+      border: 1px solid #111111;
+      color: #ffffff;
       font-weight: 700;
     }
 
@@ -163,42 +210,47 @@
 
     .card {
       padding: 20px;
-      border-radius: 18px;
-      background: rgba(30, 41, 59, 0.85);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 8px;
+      background: #fbfbfa;
+      border: 1px solid #d6d6d0;
     }
 
     .card-title {
-      color: #93c5fd;
+      color: #111111;
       font-weight: 900;
       margin-bottom: 8px;
       font-size: 18px;
     }
 
     .mini {
-      color: #cbd5e1;
+      color: #565656;
       font-size: 15px;
     }
 
     .highlight {
-      color: #facc15;
+      color: #111111;
       font-weight: 900;
     }
 
     .conclusion {
-      background: linear-gradient(135deg, #1d4ed8, #7c3aed);
-      border: none;
+      background: #111111;
+      border-color: #111111;
     }
 
     .conclusion h2,
     .conclusion p {
-      color: white;
+      color: #ffffff;
+    }
+
+    .conclusion .num {
+      background: #ffffff;
+      color: #111111;
     }
 
     .conclusion .formula {
-      background: rgba(15, 23, 42, 0.55);
-      border-color: rgba(255, 255, 255, 0.25);
-      color: white;
+      background: #222222;
+      border-color: #444444;
+      color: #ffffff;
     }
 
     @media (max-width: 820px) {
@@ -215,11 +267,22 @@
       .section {
         padding: 24px;
       }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        margin-bottom: 40px;
+      }
     }
   </style>
 </head>
 <body>
   <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to RL notes</a>
+    </nav>
+
     <section class="hero">
       <div class="badge">FPO 핵심 설명</div>
       <h1>왜 FPO는 likelihood 대신 CFM loss를 사용하는가?</h1>
@@ -243,11 +306,11 @@
       <p>
         일반적인 Policy Gradient나 PPO에서는, 어떤 상태 <b>s</b>에서 선택한 action <b>a</b>의 확률을 높이거나 낮추면서 policy를 학습한다.
       </p>
-      <div class="formula">log π<sub>θ</sub>(a | s)</div>
+      <div class="formula">\[\log \pi_\theta(a \mid s)\]</div>
       <p>
         좋은 action이면 이 값을 키우고, 나쁜 action이면 이 값을 줄이고 싶다. PPO에서는 현재 policy와 이전 policy의 likelihood ratio를 사용한다.
       </p>
-      <div class="formula">r(θ) = π<sub>θ</sub>(a | s) / π<sub>old</sub>(a | s)</div>
+      <div class="formula">\[r(\theta) = \frac{\pi_\theta(a \mid s)}{\pi_{\mathrm{old}}(a \mid s)}\]</div>
       <div class="note">즉, PPO의 출발점은 “action likelihood를 계산할 수 있다”는 가정이다.</div>
     </section>
 
@@ -259,7 +322,7 @@
       <p>
         Gaussian policy는 평균과 분산만 알면 action의 확률밀도를 바로 계산할 수 있다. 하지만 Flow policy는 noise를 여러 단계의 flow를 통해 action으로 변환한다.
       </p>
-      <div class="formula">ε ~ N(0, I) → flow integration → a</div>
+      <div class="formula">\[\varepsilon \sim \mathcal{N}(0, I) \rightarrow \text{flow integration} \rightarrow a\]</div>
       <p>
         따라서 어떤 action <b>a</b>가 나왔을 때, 그 action이 현재 flow policy에서 얼마나 높은 확률로 나오는지 직접 계산하기 어렵다.
       </p>
@@ -274,11 +337,11 @@
       <p>
         Flow / diffusion 모델에서는 정확한 log-likelihood 대신, 그 하한인 ELBO를 최적화하는 방식이 많이 사용된다.
       </p>
-      <div class="formula">ELBO<sub>θ</sub>(a) ≤ log π<sub>θ</sub>(a | s)</div>
+      <div class="formula">\[\mathrm{ELBO}_\theta(a) \le \log \pi_\theta(a \mid s)\]</div>
       <p>
         여기서 중요한 관계는 다음과 같다.
       </p>
-      <div class="formula">log π<sub>θ</sub>(a | s) = ELBO<sub>θ</sub>(a) + KL</div>
+      <div class="formula">\[\log \pi_\theta(a \mid s) = \mathrm{ELBO}_\theta(a) + \mathrm{KL}\]</div>
       <p>
         KL divergence는 항상 0 이상이므로, ELBO는 log-likelihood보다 작거나 같은 값이 된다.
       </p>
@@ -314,11 +377,11 @@
       <p>
         Flow matching에서는 action에 noise를 섞은 뒤, 모델이 올바른 velocity 또는 denoising 방향을 예측하도록 학습한다.
       </p>
-      <div class="formula">L<sub>CFM</sub> = E[ || v<sub>θ</sub>(a<sub>τ</sub>, τ, s) - target ||² ]</div>
+      <div class="formula">\[\mathcal{L}_{\mathrm{CFM}} = \mathbb{E}\left[\left\lVert v_\theta(a_\tau, \tau, s) - \mathrm{target}\right\rVert^2\right]\]</div>
       <p>
         diffusion / flow matching 이론에서 이 denoising 계열 loss는 ELBO와 연결된다. 직관적으로는, noise를 잘 제거할수록 해당 action distribution을 잘 모델링한다는 뜻이다.
       </p>
-      <div class="formula">L<sub>CFM</sub> ≈ - ELBO + constant</div>
+      <div class="formula">\[\mathcal{L}_{\mathrm{CFM}} \approx -\mathrm{ELBO} + \mathrm{constant}\]</div>
       <div class="note">따라서 CFM loss가 작아지면 ELBO가 커지고, 결과적으로 action likelihood를 높이는 효과가 난다.</div>
     </section>
 
@@ -330,11 +393,11 @@
       <p>
         PPO는 원래 likelihood ratio를 사용한다. 하지만 FPO는 likelihood를 직접 계산하지 않고, ELBO ratio를 사용한다.
       </p>
-      <div class="formula">r<sub>FPO</sub>(θ) = exp(ELBO<sub>θ</sub> - ELBO<sub>old</sub>)</div>
+      <div class="formula">\[r_{\mathrm{FPO}}(\theta) = \exp\left(\mathrm{ELBO}_\theta - \mathrm{ELBO}_{\mathrm{old}}\right)\]</div>
       <p>
         그리고 ELBO는 CFM loss의 음수와 연결되므로 다음과 같이 바뀐다.
       </p>
-      <div class="formula">r<sub>FPO</sub>(θ) = exp(L<sub>old</sub> - L<sub>θ</sub>)</div>
+      <div class="formula">\[r_{\mathrm{FPO}}(\theta) = \exp\left(\mathcal{L}_{\mathrm{old}} - \mathcal{L}_\theta\right)\]</div>
       <p>
         결국 FPO의 핵심은 이것이다.
       </p>
