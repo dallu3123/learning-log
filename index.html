@@ -75,12 +75,13 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 18px;
     }
 
     .card {
-      min-height: 260px;
+      width: 100%;
+      min-height: 220px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -91,7 +92,18 @@
       transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
     }
 
-    .card[href]:hover {
+    button.card {
+      appearance: none;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .card[href]:hover,
+    button.card:hover,
+    button.card[aria-expanded="true"] {
       transform: translateY(-3px);
       border-color: #111111;
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
@@ -150,6 +162,75 @@
     .arrow {
       font-size: 22px;
       line-height: 1;
+      transition: transform 180ms ease;
+    }
+
+    button.card[aria-expanded="true"] .arrow {
+      transform: rotate(90deg);
+    }
+
+    .topic-panel {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: grid-template-rows 260ms ease, opacity 220ms ease, transform 260ms ease;
+    }
+
+    .topic-panel.open {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .topic-panel-inner {
+      overflow: hidden;
+    }
+
+    .topic-list {
+      margin-top: 18px;
+      padding: 18px;
+      border: 1px solid #d6d6d0;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+
+    .topic-link {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      padding: 20px;
+      border: 1px solid #e1e1dc;
+      border-radius: 8px;
+      background: #fbfbfa;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: border-color 160ms ease, transform 200ms ease, opacity 240ms ease;
+    }
+
+    .topic-panel.open .topic-link {
+      opacity: 1;
+      transform: translateY(0);
+      transition-delay: 90ms;
+    }
+
+    .topic-link:hover {
+      border-color: #111111;
+      transform: translateY(-2px);
+    }
+
+    .topic-title {
+      margin: 0;
+      color: #111111;
+      font-size: 20px;
+      font-weight: 850;
+    }
+
+    .topic-desc {
+      margin: 6px 0 0;
+      color: #626262;
+      font-size: 14px;
     }
 
     .muted {
@@ -184,7 +265,7 @@
       }
 
       .card {
-        min-height: 220px;
+        min-height: 200px;
       }
     }
   </style>
@@ -206,22 +287,38 @@
       </section>
 
       <section class="grid" aria-label="Study categories">
-        <a class="card" href="fpo_presentation.html">
-          <div>
-            <div class="card-top">
-              <span class="index">01</span>
-              <span class="tag">OPEN</span>
+        <div>
+          <button class="card" type="button" aria-expanded="false" aria-controls="rl-panel" id="rl-toggle">
+            <div>
+              <div class="card-top">
+                <span class="index">01</span>
+                <span class="tag">OPEN</span>
+              </div>
+              <h2>RL</h2>
+              <p class="desc">
+                Policy optimization, flow policies, reward modeling, and related seminar materials.
+              </p>
             </div>
-            <h2>RL</h2>
-            <p class="desc">
-              Policy optimization, flow policies, reward modeling, and related seminar materials.
-            </p>
+            <div class="foot">
+              <span>View notes</span>
+              <span class="arrow">&rarr;</span>
+            </div>
+          </button>
+
+          <div class="topic-panel" id="rl-panel">
+            <div class="topic-panel-inner">
+              <div class="topic-list">
+                <a class="topic-link" href="fpo_presentation.html">
+                  <div>
+                    <p class="topic-title">FPO</p>
+                    <p class="topic-desc">Why FPO uses CFM loss instead of direct likelihood.</p>
+                  </div>
+                  <span class="arrow">&rarr;</span>
+                </a>
+              </div>
+            </div>
           </div>
-          <div class="foot">
-            <span>FPO presentation</span>
-            <span class="arrow">&rarr;</span>
-          </div>
-        </a>
+        </div>
 
         <article class="card">
           <div>
@@ -261,5 +358,15 @@
       </footer>
     </div>
   </main>
+  <script>
+    const rlToggle = document.querySelector("#rl-toggle");
+    const rlPanel = document.querySelector("#rl-panel");
+
+    rlToggle.addEventListener("click", () => {
+      const expanded = rlToggle.getAttribute("aria-expanded") === "true";
+      rlToggle.setAttribute("aria-expanded", String(!expanded));
+      rlPanel.classList.toggle("open", !expanded);
+    });
+  </script>
 </body>
 </html>
