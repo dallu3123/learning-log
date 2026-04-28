@@ -1,0 +1,10 @@
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"]],
+    displayMath: [["\\[", "\\]"]]
+  },
+  chtml: {
+    scale: 1.05,
+    matchFontHeight: false
+  }
+};
