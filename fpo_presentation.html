@@ -265,6 +265,42 @@
       margin-top: 22px;
     }
 
+    .inline-detail {
+      margin-top: 22px;
+      border: 1px solid #d6d6d0;
+      border-radius: 8px;
+      background: #fbfbfa;
+      overflow: hidden;
+    }
+
+    .inline-detail summary {
+      cursor: pointer;
+      padding: 18px 22px;
+      color: #111111;
+      font-size: 19px;
+      font-weight: 900;
+      list-style: none;
+    }
+
+    .inline-detail summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .inline-detail summary::after {
+      content: "+";
+      float: right;
+      font-weight: 900;
+    }
+
+    .inline-detail[open] summary::after {
+      content: "-";
+    }
+
+    .inline-detail-body {
+      padding: 0 24px 24px;
+      border-top: 1px solid #d6d6d0;
+    }
+
     .stretch-diagram {
       margin: 20px 0;
       padding: 18px;
@@ -353,6 +389,10 @@
       background: #222222;
       border-color: #444444;
       color: #ffffff;
+    }
+
+    .conclusion .inline-detail p {
+      color: #444444;
     }
 
     .language-switch {
@@ -552,22 +592,37 @@
           <p data-i18n="section3P1">
             Flow / diffusion 모델에서는 정확한 log-likelihood 대신, 그 하한인 ELBO를 최적화하는 방식이 많이 사용된다.
           </p>
-          <div class="detail-content deep-dive" data-lang-scope="ko">
-            <h3 class="detail-title">왜 ELBO가 나오는가?</h3>
-            <p>
+          <div class="detail-content deep-dive">
+            <h3 class="detail-title" data-i18n="section3DeepTitle">왜 ELBO가 나오는가?</h3>
+            <p data-i18n="section3DeepP1">
               2번에서 문제가 된 것은 최종 action \(a\)의 likelihood를 계산하려면, 그 action이 만들어질 수 있는 hidden noise나 latent path를 모두 고려해야 한다는 점이었다.
             </p>
             <div class="formula">\[\pi_\theta(a \mid s)=\int \pi_\theta(a,z \mid s)\,dz\]</div>
-            <p>
+            <p data-i18n="section3DeepP2">
               여기서 \(z\)는 action을 만들기 위해 거쳐간 hidden variable 또는 path를 의미한다. 문제는 가능한 \(z\)를 모두 적분한 뒤 log를 취해야 하므로, 아래 값이 직접 계산하기 어렵다는 것이다.
             </p>
             <div class="formula">\[\log \pi_\theta(a \mid s)=\log \int \pi_\theta(a,z \mid s)\,dz\]</div>
-            <p>
+            <p data-i18n="section3DeepP3">
               그래서 variational inference에서는 계산 가능한 보조 분포 \(q(z \mid a,s)\)를 도입한다. 이 \(q\)는 “이 action \(a\)가 어떤 latent path에서 왔을까?”를 설명하는 분포로 볼 수 있다.
             </p>
+            <p data-i18n="section3DeepP4">
+              \(q\)를 넣는 이유는 어려운 적분을 \(q\)에 대한 기대값 형태로 바꾸기 위해서다. 원래 식에 \(q(z \mid a,s)\)를 곱하고 다시 나누면 값은 변하지 않는다.
+            </p>
+            <div class="formula">\[\pi_\theta(a \mid s)=\int q(z\mid a,s)\frac{\pi_\theta(a,z\mid s)}{q(z\mid a,s)}\,dz\]</div>
+            <p data-i18n="section3DeepP5">
+              이렇게 쓰면 같은 식을 \(q\)에 대한 expectation으로 볼 수 있다.
+            </p>
+            <div class="formula">\[\pi_\theta(a \mid s)=\mathbb{E}_{q(z\mid a,s)}\left[\frac{\pi_\theta(a,z\mid s)}{q(z\mid a,s)}\right]\]</div>
+            <p data-i18n="section3DeepP6">
+              이제 log를 취하면 \(\log \mathbb{E}_q[\cdot]\) 형태가 된다. 여기서 Jensen inequality를 사용하면 log를 expectation 안쪽으로 넣은 lower bound를 얻을 수 있다.
+            </p>
+            <div class="formula">\[\log \mathbb{E}_q[X]\geq \mathbb{E}_q[\log X]\]</div>
+            <p data-i18n="section3DeepP7">
+              따라서 다음 오른쪽 항이 진짜 log-likelihood보다 작거나 같은 값이 되고, 이 값을 ELBO라고 부른다.
+            </p>
             <div class="formula">\[\mathrm{ELBO}_\theta(a)=\mathbb{E}_{q(z\mid a,s)}\left[\log \frac{\pi_\theta(a,z\mid s)}{q(z\mid a,s)}\right]\]</div>
-            <p>
-              Jensen inequality 때문에 이 값은 진짜 log-likelihood보다 작거나 같은 lower bound가 된다.
+            <p data-i18n="section3DeepP8">
+              직관적으로는 “모든 가능한 \(z\)를 무작정 다 보지 말고, action \(a\)를 만들었을 법한 \(z\)들을 중심으로 보자”는 것이다. \(q\)가 진짜 posterior에 가까울수록 ELBO는 실제 log-likelihood에 가까워진다.
             </p>
           </div>
           <div class="formula">\[\mathrm{ELBO}_\theta(a) \le \log \pi_\theta(a \mid s)\]</div>
@@ -575,7 +630,39 @@
             여기서 중요한 관계는 다음과 같다.
           </p>
           <div class="formula">\[\log \pi_\theta(a \mid s) = \mathrm{ELBO}_\theta(a) + \mathrm{KL}\]</div>
-          <div class="formula" data-lang-scope="ko">\[\mathrm{ELBO}_\theta(a)=\log \pi_\theta(a\mid s)-\mathrm{KL}\]</div>
+          <div class="detail-content deep-dive">
+            <h3 class="detail-title" data-i18n="section3KlTitle">왜 \(\log \pi = \mathrm{ELBO} + \mathrm{KL}\)인가?</h3>
+            <p data-i18n="section3KlP1">
+              ELBO 정의에서 시작하면 다음과 같다.
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)=\mathbb{E}_{q(z\mid a,s)}\left[\log \frac{\pi_\theta(a,z\mid s)}{q(z\mid a,s)}\right]\]</div>
+            <p data-i18n="section3KlP2">
+              joint probability는 posterior를 이용해 다음처럼 분해할 수 있다.
+            </p>
+            <div class="formula">\[\pi_\theta(a,z\mid s)=\pi_\theta(z\mid a,s)\pi_\theta(a\mid s)\]</div>
+            <p data-i18n="section3KlP3">
+              이걸 ELBO 정의에 넣으면,
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)=\mathbb{E}_q\left[\log \frac{\pi_\theta(z\mid a,s)\pi_\theta(a\mid s)}{q(z\mid a,s)}\right]\]</div>
+            <p data-i18n="section3KlP4">
+              \(\log \pi_\theta(a\mid s)\)는 \(z\)에 의존하지 않으므로 expectation 밖으로 빠질 수 있다.
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)=\log \pi_\theta(a\mid s)+\mathbb{E}_q\left[\log \frac{\pi_\theta(z\mid a,s)}{q(z\mid a,s)}\right]\]</div>
+            <p data-i18n="section3KlP5">
+              그런데 KL divergence의 정의는 다음과 같다.
+            </p>
+            <div class="formula">\[\mathrm{KL}\left(q(z\mid a,s)\,\|\,\pi_\theta(z\mid a,s)\right)=\mathbb{E}_q\left[\log \frac{q(z\mid a,s)}{\pi_\theta(z\mid a,s)}\right]\]</div>
+            <p data-i18n="section3KlP6">
+              따라서 ELBO의 두 번째 항은 \(-\mathrm{KL}\)이 된다.
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)=\log \pi_\theta(a\mid s)-\mathrm{KL}\left(q(z\mid a,s)\,\|\,\pi_\theta(z\mid a,s)\right)\]</div>
+            <p data-i18n="section3KlP7">
+              이 식을 정리하면 다음 관계가 나온다.
+            </p>
+            <div class="formula">\[\log \pi_\theta(a\mid s)=\mathrm{ELBO}_\theta(a)+\mathrm{KL}\]</div>
+            <div class="note" data-i18n="section3KlNote">즉, 진짜 log-likelihood는 ELBO에 \(q\)와 진짜 posterior 사이의 오차인 KL을 더한 값이다.</div>
+          </div>
+          <div class="formula">\[\mathrm{ELBO}_\theta(a)=\log \pi_\theta(a\mid s)-\mathrm{KL}\]</div>
           <p data-i18n="section3P3">
             KL divergence는 항상 0 이상이므로, ELBO는 log-likelihood보다 작거나 같은 값이 된다.
           </p>
@@ -594,6 +681,36 @@
           <p data-i18n="section4P1">
             ELBO는 log-likelihood의 lower bound이므로, ELBO를 크게 만들면 해당 action을 policy가 더 잘 설명하도록 만드는 효과가 있다.
           </p>
+          <div class="detail-content deep-dive" data-lang-scope="ko">
+            <h3 class="detail-title">직접 못 올리는 값을 대신 올리는 것이다</h3>
+            <p>
+              PPO가 원래 하고 싶은 일은 좋은 action이 나올 확률 \(\pi_\theta(a\mid s)\)을 올리는 것이다. 그런데 FPO에서는 flow policy 때문에 \(\log \pi_\theta(a\mid s)\)를 직접 계산하기 어렵다.
+            </p>
+            <div class="formula">\[\log \pi_\theta(a\mid s)=\mathrm{ELBO}_\theta(a)+\mathrm{KL}\]</div>
+            <p>
+              따라서 FPO는 직접 계산하기 어려운 진짜 log-likelihood 대신, 계산 가능한 아래쪽 근사값인 ELBO를 올린다.
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)\leq \log \pi_\theta(a\mid s)\]</div>
+            <p>
+              좋은 action의 ELBO가 커진다는 것은, 현재 policy가 그 action을 더 그럴듯하게 생성하도록 학습된다는 뜻이다. 즉, 진짜 점수를 직접 볼 수 없으니, 그 점수보다 낮지만 계산 가능한 대리 점수를 올리는 방식이다.
+            </p>
+            <div class="note">다만 ELBO를 올린다고 항상 \(\log \pi\)가 정확히 같은 만큼 올라가는 것은 아니다. 두 값 사이에는 KL gap이 있기 때문에, \(q\)가 진짜 posterior에 가까울수록 ELBO가 더 좋은 likelihood proxy가 된다.</div>
+          </div>
+          <div class="detail-content deep-dive" data-lang-scope="en">
+            <h3 class="detail-title">We increase a computable substitute</h3>
+            <p>
+              What PPO originally wants to do is increase the probability \(\pi_\theta(a\mid s)\) of a good action. In FPO, however, the flow policy makes \(\log \pi_\theta(a\mid s)\) hard to compute directly.
+            </p>
+            <div class="formula">\[\log \pi_\theta(a\mid s)=\mathrm{ELBO}_\theta(a)+\mathrm{KL}\]</div>
+            <p>
+              Therefore, instead of increasing the true log-likelihood directly, FPO increases ELBO, which is a computable lower approximation.
+            </p>
+            <div class="formula">\[\mathrm{ELBO}_\theta(a)\leq \log \pi_\theta(a\mid s)\]</div>
+            <p>
+              Increasing the ELBO of a good action means training the current policy to make that action more plausible. In other words, since we cannot observe the true score directly, we increase a computable surrogate score that lies below it.
+            </p>
+            <div class="note">However, increasing ELBO does not always increase \(\log \pi\) by exactly the same amount. There is a KL gap between the two values, so the closer \(q\) is to the true posterior, the better ELBO becomes as a likelihood proxy.</div>
+          </div>
           <div class="two-col">
             <div class="card">
               <div class="card-title" data-i18n="goodAction">좋은 action</div>
@@ -624,6 +741,164 @@
             diffusion / flow matching 이론에서 이 denoising 계열 loss는 ELBO와 연결된다. 직관적으로는, noise를 잘 제거할수록 해당 action distribution을 잘 모델링한다는 뜻이다.
           </p>
           <div class="formula">\[\mathcal{L}_{\mathrm{CFM}} \approx -\mathrm{ELBO} + \mathrm{constant}\]</div>
+          <div class="detail-content deep-dive" data-lang-scope="ko">
+            <h3 class="detail-title">Flow matching 관점에서 수식으로 보기</h3>
+            <p>
+              먼저 action \(a\)를 clean data로 보고, noise \(\epsilon\)와 연결한 중간 action을 만든다.
+            </p>
+            <div class="formula">\[a_\tau=\tau a+(1-\tau)\epsilon\]</div>
+            <p>
+              이 linear path에서 target velocity는 중간 action이 시간에 따라 움직이는 실제 방향이다.
+            </p>
+            <div class="formula">\[u_\tau=\frac{d a_\tau}{d\tau}=a-\epsilon\]</div>
+            <p>
+              따라서 CFM loss는 모델 velocity가 이 target velocity를 얼마나 잘 맞추는지를 재는 MSE로 쓸 수 있다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{\mathrm{CFM},\theta}(a)=\mathbb{E}_{\tau,\epsilon}\left[\left\lVert v_\theta(a_\tau,\tau,s)-(a-\epsilon)\right\rVert^2\right]\]</div>
+            <p>
+              Kingma &amp; Gao의 결과는 이 CFM loss가 diffusion notation에서는 weighted denoising loss의 한 종류로 볼 수 있고, monotonic weighting 조건에서는 그 loss가 noise-perturbed action들의 negative ELBO 평균과 같다는 것이다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=-\mathbb{E}_{\tau,q(a_\tau\mid a)}\left[\mathrm{ELBO}_{\tau,\theta}(a_\tau)\right]+C\]</div>
+            <p>
+              여기서 \(C\)는 모델 파라미터 \(\theta\)와 무관한 constant다. 그래서 최적화할 때는 loss를 줄이는 것이 곧 expected ELBO를 올리는 것과 같은 방향이 된다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{\mathrm{CFM}}\downarrow \quad\Longleftrightarrow\quad \mathbb{E}_\tau[\mathrm{ELBO}_{\tau,\theta}]\uparrow\]</div>
+            <div class="note">
+              즉, flow matching에서는 “velocity를 잘 맞춘다”는 것이 “noise에서 action으로 가는 latent path를 모델이 잘 설명한다”는 뜻이고, 수식적으로는 그 path의 expected ELBO를 높이는 것으로 해석된다.
+            </div>
+          </div>
+          <div class="detail-content deep-dive" data-lang-scope="en">
+            <h3 class="detail-title">Flow Matching View in Equations</h3>
+            <p>
+              First, treat action \(a\) as clean data and construct an intermediate action by connecting it with noise \(\epsilon\).
+            </p>
+            <div class="formula">\[a_\tau=\tau a+(1-\tau)\epsilon\]</div>
+            <p>
+              Along this linear path, the target velocity is the true direction in which the intermediate action moves over time.
+            </p>
+            <div class="formula">\[u_\tau=\frac{d a_\tau}{d\tau}=a-\epsilon\]</div>
+            <p>
+              Therefore, the CFM loss can be written as an MSE that measures how well the model velocity matches this target velocity.
+            </p>
+            <div class="formula">\[\mathcal{L}_{\mathrm{CFM},\theta}(a)=\mathbb{E}_{\tau,\epsilon}\left[\left\lVert v_\theta(a_\tau,\tau,s)-(a-\epsilon)\right\rVert^2\right]\]</div>
+            <p>
+              Kingma &amp; Gao's result says that this CFM loss can be viewed, in diffusion notation, as a type of weighted denoising loss. Under monotonic weighting, that loss equals the average negative ELBO of noise-perturbed actions.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=-\mathbb{E}_{\tau,q(a_\tau\mid a)}\left[\mathrm{ELBO}_{\tau,\theta}(a_\tau)\right]+C\]</div>
+            <p>
+              Here, \(C\) is a constant independent of the model parameters \(\theta\). Therefore, minimizing the loss points in the same direction as maximizing the expected ELBO.
+            </p>
+            <div class="formula">\[\mathcal{L}_{\mathrm{CFM}}\downarrow \quad\Longleftrightarrow\quad \mathbb{E}_\tau[\mathrm{ELBO}_{\tau,\theta}]\uparrow\]</div>
+            <div class="note">
+              In flow matching, matching the velocity means that the model explains the latent path from noise to action well. Mathematically, this can be interpreted as increasing the expected ELBO of that path.
+            </div>
+          </div>
+          <div class="detail-content deep-dive" data-lang-scope="ko">
+            <h3 class="detail-title">Kingma &amp; Gao 증명 흐름</h3>
+            <p>
+              Kingma &amp; Gao는 먼저 diffusion / flow matching objective를 noise level \(\lambda\)에 대한 weighted denoising loss로 쓴다. 여기서 \(\lambda\)는 log-SNR이고, flow matching의 \(\tau\)와 일대일로 대응되는 noise level 변수로 보면 된다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int_{\lambda_{\min}}^{\lambda_{\max}}w(\lambda)\,\ell_\theta(a_\lambda,\lambda)\,d\lambda\]</div>
+            <p>
+              핵심 보조정리는, 각 noise level에서의 denoising error \(\ell_\theta\)가 그 noise level 이후 latent path의 KL gap이 얼마나 변하는지를 나타낸다는 것이다.
+            </p>
+            <div class="formula">\[\ell_\theta(a_\lambda,\lambda)\,d\lambda \;\Longleftrightarrow\; d\,D_{\mathrm{KL}}\!\left(q_{\lambda:T}\,\|\,p_{\theta,\lambda:T}\right)\]</div>
+            <p>
+              즉, 모델이 denoising 방향을 틀리게 예측할수록 실제 forward path \(q\)와 모델 reverse path \(p_\theta\) 사이의 KL gap이 커진다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int w(\lambda)\,dK_\theta(\lambda)+C_0\]</div>
+            <p>
+              여기서 \(K_\theta(\lambda)\)는 해당 noise level에서의 path KL gap이다. 이 식에 integration by parts를 적용하면, denoising loss를 KL gap들의 weighted average 형태로 다시 쓸 수 있다.
+            </p>
+            <div class="formula">\[\int w(\lambda)\,dK_\theta(\lambda)=\left[w(\lambda)K_\theta(\lambda)\right]_{\lambda_{\min}}^{\lambda_{\max}}-\int K_\theta(\lambda)\,dw(\lambda)\]</div>
+            <p>
+              \(w(\lambda)\)가 monotonic이면 \(dw(\lambda)\)를 어떤 noise level을 뽑는 확률분포 \(p_w(\lambda)\)처럼 볼 수 있다. boundary term과 forward-process entropy처럼 \(\theta\)에 의존하지 않는 항들은 constant로 묶인다.
+            </p>
+            <p>
+              더 정확히는 \(dw(\lambda)\) 자체가 바로 확률분포는 아니다. 전체 질량이 1이 되도록 normalize해야 한다.
+            </p>
+            <div class="formula">\[Z_w=\int dw(\lambda),\qquad p_w(\lambda)=\frac{1}{Z_w}\frac{dw(\lambda)}{d\lambda}\]</div>
+            <p>
+              그래서 다음 적분은 expectation 그 자체가 아니라, expectation에 \(Z_w\)가 곱해진 형태다.
+            </p>
+            <div class="formula">\[\int K_\theta(\lambda)\,dw(\lambda)=Z_w\,\mathbb{E}_{\lambda\sim p_w}\left[K_\theta(\lambda)\right]\]</div>
+            <p>
+              \(Z_w\)는 \(w\)가 정해지면 고정되는 positive constant이고, 모델 파라미터 \(\theta\)와 무관하다. 따라서 loss scale은 바꾸지만 최적화 방향은 바꾸지 않는다.
+            </p>
+            <div class="formula">\[\nabla_\theta\left(Z_w\,\mathbb{E}[K_\theta]\right)=Z_w\,\nabla_\theta\mathbb{E}[K_\theta]\]</div>
+            <p>
+              그래서 논문에서는 \(Z_w\)를 weighting definition이나 learning rate scale에 흡수하고, 아래처럼 expectation 형태로 간단히 쓴다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\mathbb{E}_{\lambda\sim p_w}\left[K_\theta(\lambda)\right]+C_1\]</div>
+            <p>
+              마지막으로 variational inference에서 KL gap은 true log-likelihood와 ELBO의 차이다.
+            </p>
+            <div class="formula">\[\log p_\theta(a_\lambda)=\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+K_\theta(\lambda)\]</div>
+            <p>
+              이때 \(\log p_\theta(a_\lambda)\)의 forward-data term과 entropy term 중 \(\theta\)와 무관한 부분을 constant로 묶으면, KL gap을 negative ELBO로 볼 수 있다.
+            </p>
+            <div class="formula">\[K_\theta(\lambda)=-\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+C_2\]</div>
+            <p>
+              따라서 최종적으로 weighted denoising loss, 그리고 flow matching의 CFM loss는 noise-perturbed action들의 negative ELBO 평균과 같아진다.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=-\mathbb{E}_{\lambda\sim p_w,\;q(a_\lambda\mid a)}\left[\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)\right]+C\]</div>
+            <div class="note">
+              그래서 FPO에서 CFM loss를 줄인다는 것은 단순히 MSE를 줄이는 것이 아니라, 수식적으로는 noise가 섞인 action path들의 expected ELBO를 올리는 것과 같은 방향이다.
+            </div>
+          </div>
+          <div class="detail-content deep-dive" data-lang-scope="en">
+            <h3 class="detail-title">Kingma &amp; Gao Proof Flow</h3>
+            <p>
+              Kingma &amp; Gao first write the diffusion / flow matching objective as a weighted denoising loss over the noise level \(\lambda\). Here, \(\lambda\) is the log-SNR, which can be viewed as a noise-level coordinate corresponding to the flow matching time \(\tau\).
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int_{\lambda_{\min}}^{\lambda_{\max}}w(\lambda)\,\ell_\theta(a_\lambda,\lambda)\,d\lambda\]</div>
+            <p>
+              The key lemma is that the denoising error \(\ell_\theta\) at each noise level describes how the KL gap of the latent path changes after that noise level.
+            </p>
+            <div class="formula">\[\ell_\theta(a_\lambda,\lambda)\,d\lambda \;\Longleftrightarrow\; d\,D_{\mathrm{KL}}\!\left(q_{\lambda:T}\,\|\,p_{\theta,\lambda:T}\right)\]</div>
+            <p>
+              In other words, when the model predicts the denoising direction incorrectly, the KL gap between the true forward path \(q\) and the model reverse path \(p_\theta\) becomes larger.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int w(\lambda)\,dK_\theta(\lambda)+C_0\]</div>
+            <p>
+              Here, \(K_\theta(\lambda)\) is the path KL gap at that noise level. Applying integration by parts rewrites the denoising loss as a weighted average of KL gaps.
+            </p>
+            <div class="formula">\[\int w(\lambda)\,dK_\theta(\lambda)=\left[w(\lambda)K_\theta(\lambda)\right]_{\lambda_{\min}}^{\lambda_{\max}}-\int K_\theta(\lambda)\,dw(\lambda)\]</div>
+            <p>
+              If \(w(\lambda)\) is monotonic, \(dw(\lambda)\) can be treated like the mass used to sample a noise level distribution \(p_w(\lambda)\). Boundary terms and forward-process entropy terms that do not depend on \(\theta\) are grouped into constants.
+            </p>
+            <p>
+              More precisely, \(dw(\lambda)\) itself is not immediately a probability distribution. It must be normalized so that its total mass is 1.
+            </p>
+            <div class="formula">\[Z_w=\int dw(\lambda),\qquad p_w(\lambda)=\frac{1}{Z_w}\frac{dw(\lambda)}{d\lambda}\]</div>
+            <p>
+              Therefore, the following integral is not exactly an expectation by itself. It is an expectation multiplied by \(Z_w\).
+            </p>
+            <div class="formula">\[\int K_\theta(\lambda)\,dw(\lambda)=Z_w\,\mathbb{E}_{\lambda\sim p_w}\left[K_\theta(\lambda)\right]\]</div>
+            <p>
+              \(Z_w\) is a positive constant fixed by the weighting function \(w\), and it does not depend on the model parameters \(\theta\). It changes the loss scale, but not the optimization direction.
+            </p>
+            <div class="formula">\[\nabla_\theta\left(Z_w\,\mathbb{E}[K_\theta]\right)=Z_w\,\nabla_\theta\mathbb{E}[K_\theta]\]</div>
+            <p>
+              For this reason, papers often absorb \(Z_w\) into the weighting definition or learning-rate scale and write the result in expectation form.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\mathbb{E}_{\lambda\sim p_w}\left[K_\theta(\lambda)\right]+C_1\]</div>
+            <p>
+              Finally, in variational inference, the KL gap is the difference between the true log-likelihood and the ELBO.
+            </p>
+            <div class="formula">\[\log p_\theta(a_\lambda)=\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+K_\theta(\lambda)\]</div>
+            <p>
+              If the parts of \(\log p_\theta(a_\lambda)\) that come from the forward-data term or entropy term do not depend on \(\theta\), they can be grouped into constants. Then the KL gap can be viewed as negative ELBO plus a constant.
+            </p>
+            <div class="formula">\[K_\theta(\lambda)=-\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+C_2\]</div>
+            <p>
+              Therefore, the weighted denoising loss, and thus the flow matching CFM loss, becomes the average negative ELBO of noise-perturbed actions.
+            </p>
+            <div class="formula">\[\mathcal{L}_{w,\theta}(a)=-\mathbb{E}_{\lambda\sim p_w,\;q(a_\lambda\mid a)}\left[\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)\right]+C\]</div>
+            <div class="note">
+              So in FPO, reducing the CFM loss is not only reducing an MSE. Mathematically, it points in the same direction as increasing the expected ELBO of noisy action paths.
+            </div>
+          </div>
           <div class="note" data-i18n="section5Note">따라서 CFM loss가 작아지면 ELBO가 커지고, 결과적으로 action likelihood를 높이는 효과가 난다.</div>
         </div>
       </div>
@@ -640,6 +915,30 @@
             PPO는 원래 likelihood ratio를 사용한다. 하지만 FPO는 likelihood를 직접 계산하지 않고, ELBO ratio를 사용한다.
           </p>
           <div class="formula">\[r_{\mathrm{FPO}}(\theta) = \exp\left(\mathrm{ELBO}_\theta - \mathrm{ELBO}_{\mathrm{old}}\right)\]</div>
+          <details class="inline-detail" data-lang-scope="ko">
+            <summary>왜 exp가 붙는가?</summary>
+            <div class="inline-detail-body">
+              <p>
+                PPO의 ratio는 원래 현재 policy와 old policy의 action 확률 비율이다.
+              </p>
+              <div class="formula">\[r(\theta)=\frac{\pi_\theta(a\mid s)}{\pi_{\theta_{\mathrm{old}}}(a\mid s)}\]</div>
+              <p>
+                그런데 실제 계산에서는 확률 자체보다 log probability를 주로 다룬다. 확률밀도는 매우 작아질 수 있고, log로 계산하는 편이 수치적으로 안정적이기 때문이다.
+              </p>
+              <div class="formula">\[\log r(\theta)=\log \pi_\theta(a\mid s)-\log \pi_{\theta_{\mathrm{old}}}(a\mid s)\]</div>
+              <p>
+                위 식은 ratio의 log 값이다. PPO objective에는 ratio 자체가 필요하므로, 다시 확률 비율로 되돌리기 위해 exponential을 취한다.
+              </p>
+              <div class="formula">\[r(\theta)=\exp\left(\log \pi_\theta(a\mid s)-\log \pi_{\theta_{\mathrm{old}}}(a\mid s)\right)\]</div>
+              <p>
+                FPO에서는 \(\log \pi\)를 직접 계산하기 어렵기 때문에, 그 자리에 ELBO를 넣어 근사한다.
+              </p>
+              <div class="formula">\[\log \pi_\theta(a\mid s)\approx \mathrm{ELBO}_\theta(a)\]</div>
+              <p>
+                그래서 FPO ratio는 ELBO 차이를 exponential로 감싼 형태가 된다.
+              </p>
+            </div>
+          </details>
           <p data-i18n="section6P2">
             그리고 ELBO는 CFM loss의 음수와 연결되므로 다음과 같이 바뀐다.
           </p>
@@ -696,6 +995,24 @@
         section3P2: "여기서 중요한 관계는 다음과 같다.",
         section3P3: "KL divergence는 항상 0 이상이므로, ELBO는 log-likelihood보다 작거나 같은 값이 된다.",
         section3Note: "즉, ELBO는 log π와 같은 값이 아니라, log π를 아래에서 근사하는 계산 가능한 proxy이다.",
+        section3DeepTitle: "왜 ELBO가 나오는가?",
+        section3DeepP1: "2번에서 문제가 된 것은 최종 action \\(a\\)의 likelihood를 계산하려면, 그 action이 만들어질 수 있는 hidden noise나 latent path를 모두 고려해야 한다는 점이었다.",
+        section3DeepP2: "여기서 \\(z\\)는 action을 만들기 위해 거쳐간 hidden variable 또는 path를 의미한다. 문제는 가능한 \\(z\\)를 모두 적분한 뒤 log를 취해야 하므로, 아래 값이 직접 계산하기 어렵다는 것이다.",
+        section3DeepP3: "그래서 variational inference에서는 계산 가능한 보조 분포 \\(q(z \\mid a,s)\\)를 도입한다. 이 \\(q\\)는 “이 action \\(a\\)가 어떤 latent path에서 왔을까?”를 설명하는 분포로 볼 수 있다.",
+        section3DeepP4: "\\(q\\)를 넣는 이유는 어려운 적분을 \\(q\\)에 대한 기대값 형태로 바꾸기 위해서다. 원래 식에 \\(q(z \\mid a,s)\\)를 곱하고 다시 나누면 값은 변하지 않는다.",
+        section3DeepP5: "이렇게 쓰면 같은 식을 \\(q\\)에 대한 expectation으로 볼 수 있다.",
+        section3DeepP6: "이제 log를 취하면 \\(\\log \\mathbb{E}_q[\\cdot]\\) 형태가 된다. 여기서 Jensen inequality를 사용하면 log를 expectation 안쪽으로 넣은 lower bound를 얻을 수 있다.",
+        section3DeepP7: "따라서 다음 오른쪽 항이 진짜 log-likelihood보다 작거나 같은 값이 되고, 이 값을 ELBO라고 부른다.",
+        section3DeepP8: "직관적으로는 “모든 가능한 \\(z\\)를 무작정 다 보지 말고, action \\(a\\)를 만들었을 법한 \\(z\\)들을 중심으로 보자”는 것이다. \\(q\\)가 진짜 posterior에 가까울수록 ELBO는 실제 log-likelihood에 가까워진다.",
+        section3KlTitle: "왜 \\(\\log \\pi = \\mathrm{ELBO} + \\mathrm{KL}\\)인가?",
+        section3KlP1: "ELBO 정의에서 시작하면 다음과 같다.",
+        section3KlP2: "joint probability는 posterior를 이용해 다음처럼 분해할 수 있다.",
+        section3KlP3: "이걸 ELBO 정의에 넣으면,",
+        section3KlP4: "\\(\\log \\pi_\\theta(a\\mid s)\\)는 \\(z\\)에 의존하지 않으므로 expectation 밖으로 빠질 수 있다.",
+        section3KlP5: "그런데 KL divergence의 정의는 다음과 같다.",
+        section3KlP6: "따라서 ELBO의 두 번째 항은 \\(-\\mathrm{KL}\\)이 된다.",
+        section3KlP7: "이 식을 정리하면 다음 관계가 나온다.",
+        section3KlNote: "즉, 진짜 log-likelihood는 ELBO에 \\(q\\)와 진짜 posterior 사이의 오차인 KL을 더한 값이다.",
         section4Title: "왜 ELBO를 올리면 좋은가?",
         section4P1: "ELBO는 log-likelihood의 lower bound이므로, ELBO를 크게 만들면 해당 action을 policy가 더 잘 설명하도록 만드는 효과가 있다.",
         goodAction: "좋은 action",
@@ -750,6 +1067,24 @@
         section3P2: "The important relationship is:",
         section3P3: "Since KL divergence is always non-negative, ELBO is less than or equal to the log-likelihood.",
         section3Note: "So ELBO is not the same as log π; it is a computable proxy that approximates log π from below.",
+        section3DeepTitle: "Why does ELBO appear here?",
+        section3DeepP1: "The problem in section 2 was that computing the likelihood of the final action \\(a\\) requires considering all hidden noise variables or latent paths that could have produced that action.",
+        section3DeepP2: "Here, \\(z\\) denotes the hidden variable or path used to generate the action. The difficulty is that we must integrate over all possible \\(z\\) and then take the log, which makes the following value hard to compute directly.",
+        section3DeepP3: "Variational inference introduces a computable auxiliary distribution \\(q(z \\mid a,s)\\). You can think of \\(q\\) as a distribution that explains which latent path may have produced action \\(a\\).",
+        section3DeepP4: "The reason for inserting \\(q\\) is to rewrite the hard integral as an expectation under \\(q\\). Multiplying and dividing by \\(q(z \\mid a,s)\\) does not change the value.",
+        section3DeepP5: "Written this way, the same expression can be viewed as an expectation under \\(q\\).",
+        section3DeepP6: "After taking the log, we get a \\(\\log \\mathbb{E}_q[\\cdot]\\) form. Jensen's inequality lets us move the log inside the expectation to obtain a lower bound.",
+        section3DeepP7: "Therefore, the term on the right is less than or equal to the true log-likelihood. This lower bound is called ELBO.",
+        section3DeepP8: "Intuitively, instead of looking at all possible \\(z\\) values blindly, we focus on latent paths that plausibly produced action \\(a\\). The closer \\(q\\) is to the true posterior, the closer ELBO is to the actual log-likelihood.",
+        section3KlTitle: "Why is \\(\\log \\pi = \\mathrm{ELBO} + \\mathrm{KL}\\)?",
+        section3KlP1: "Start from the definition of ELBO.",
+        section3KlP2: "The joint probability can be decomposed using the posterior.",
+        section3KlP3: "Substituting this into the ELBO definition gives:",
+        section3KlP4: "\\(\\log \\pi_\\theta(a\\mid s)\\) does not depend on \\(z\\), so it can be pulled outside the expectation.",
+        section3KlP5: "Now recall the definition of KL divergence.",
+        section3KlP6: "Therefore, the second term in the ELBO is \\(-\\mathrm{KL}\\).",
+        section3KlP7: "Rearranging this expression gives the key relationship.",
+        section3KlNote: "In other words, the true log-likelihood equals ELBO plus the KL error between \\(q\\) and the true posterior.",
         section4Title: "Why does increasing ELBO help?",
         section4P1: "Because ELBO is a lower bound on log-likelihood, increasing ELBO makes the policy explain the action better.",
         goodAction: "Good action",
