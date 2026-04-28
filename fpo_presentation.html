@@ -38,7 +38,7 @@
     .page {
       max-width: 1080px;
       margin: 0 auto;
-      padding: 56px 24px 80px;
+      padding: 56px 24px 104px;
     }
 
     .topbar {
@@ -396,26 +396,36 @@
     }
 
     .language-switch {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
       display: flex;
-      justify-content: center;
       gap: 8px;
-      margin-top: 30px;
+      padding: 8px;
+      border: 1px solid #d6d6d0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(10px);
     }
 
     .language-button {
-      min-width: 96px;
-      padding: 10px 16px;
-      border: 1px solid #111111;
-      border-radius: 8px;
-      background: #ffffff;
-      color: #111111;
-      font-weight: 850;
+      appearance: none;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: transparent;
+      color: #555555;
       cursor: pointer;
-      transition: background 160ms ease, color 160ms ease;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 8px 12px;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
     }
 
     .language-button.is-active,
     .language-button:hover {
+      border-color: #111111;
       background: #111111;
       color: #ffffff;
     }
@@ -1139,11 +1149,29 @@
       });
     });
 
+    const openPanelFromHash = () => {
+      if (!window.location.hash) {
+        return;
+      }
+
+      const panel = document.querySelector(window.location.hash);
+      if (!panel?.classList.contains("detail-panel")) {
+        return;
+      }
+
+      panel.classList.add("is-open");
+      const button = document.querySelector(`[aria-controls="${panel.id}"]`);
+      button?.setAttribute("aria-expanded", "true");
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     document.querySelectorAll(".language-button").forEach((button) => {
       button.addEventListener("click", () => setLanguage(button.dataset.lang));
     });
 
     setLanguage("ko");
+    openPanelFromHash();
+    window.addEventListener("hashchange", openPanelFromHash);
   </script>
 </body>
 </html>
