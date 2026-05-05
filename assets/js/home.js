@@ -1,8 +1,15 @@
-const rlToggle = document.querySelector("#rl-toggle");
-const rlPanel = document.querySelector("#rl-panel");
+const setupTopicToggle = (toggleSelector, panelSelector) => {
+  const toggle = document.querySelector(toggleSelector);
+  const panel = document.querySelector(panelSelector);
 
-rlToggle.addEventListener("click", () => {
-  const expanded = rlToggle.getAttribute("aria-expanded") === "true";
-  rlToggle.setAttribute("aria-expanded", String(!expanded));
-  rlPanel.classList.toggle("open", !expanded);
-});
+  if (!toggle || !panel) return;
+
+  toggle.addEventListener("click", () => {
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!expanded));
+    panel.classList.toggle("open", !expanded);
+  });
+};
+
+setupTopicToggle("#rl-toggle", "#rl-panel");
+setupTopicToggle("#humanoid-toggle", "#humanoid-panel");

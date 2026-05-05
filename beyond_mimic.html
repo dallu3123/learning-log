@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeyondMimic</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html" data-i18n="back">← Back to Humanoid notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge" data-i18n="badge">BeyondMimic 정리</div>
+      <h1 data-i18n="title">BeyondMimic</h1>
+      <p class="subtitle" data-i18n="subtitle">From Motion Tracking to Versatile Humanoid Control via Guided Diffusion.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="introKicker">Introduction</p>
+      <h2 data-i18n="introTitle">BeyondMimic은 어떤 문제에서 출발하는가?</h2>
+      <p data-i18n="introP1">
+        BeyondMimic은 휴머노이드가 사람처럼 민첩하고 자연스럽게 움직이는 것뿐 아니라,
+        배운 동작들을 조합해서 새로운 task까지 해결할 수 있어야 한다는 문제에서 출발한다.
+      </p>
+      <p data-i18n="introP2">
+        기존 방법들은 각각 뚜렷한 한계를 가진다. Model-based control은 계산을 다루기 쉽지만,
+        단순화된 동역학 때문에 움직임이 제한적이고 부자연스러워지기 쉽다. RL 기반 humanoid
+        control은 걷기, 달리기, 계단 오르기 같은 행동을 만들 수 있지만, 보통 task마다 reward를
+        새로 설계해야 하고 인간다운 움직임을 직접 reward로 표현하기 어렵다.
+      </p>
+      <p data-i18n="introP3">
+        Human motion imitation 계열은 자연스러운 동작을 만들 수 있지만, 특정 motion이나 task에
+        묶이기 쉽다. 즉, 학습한 motion을 넘어 새로운 상황에서 여러 skill을 자연스럽게 조합하는
+        능력이 부족하다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title" data-i18n="introItem1Title">Compact motion tracking formulation</p>
+            <p class="summary-desc" data-i18n="introItem1Desc">
+              복잡한 reward shaping이나 과도한 domain randomization 대신, 로봇 actuation과 시스템
+              구현을 정확히 맞추고 단순한 reward 구조로 다양한 human motion을 하나의 세팅에서 학습한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title" data-i18n="introItem2Title">Guided diffusion for test-time adaptation</p>
+            <p class="summary-desc" data-i18n="introItem2Desc">
+              Diffusion model이 배운 motion skill의 분포를 prior처럼 사용하고, classifier guidance를
+              통해 inference time에 새로운 objective를 만족하도록 future state/action trajectory를 조정한다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="introP4">
+        결국 BeyondMimic의 핵심 메시지는 사람 motion을 따라 하는 humanoid를 넘어서,
+        사람 motion에서 배운 skill들을 조합해 새로운 task까지 zero-shot으로 해결하는 versatile
+        humanoid control framework를 만드는 것이다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="resultsKicker">Results</p>
+      <h2 data-i18n="resultsTitle">BeyondMimic은 무엇을 보여줬는가?</h2>
+      <p data-i18n="resultsP1">
+        Results는 크게 두 가지를 보여준다. 첫째, BeyondMimic이 다양한 human motion을 하나의
+        motion tracking formulation으로 안정적으로 학습할 수 있는지, 둘째, 이렇게 배운 skill을
+        diffusion guidance로 조합해 학습하지 않은 task까지 수행할 수 있는지다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title" data-i18n="resultsItem1Title">Scalable learning from human motions</p>
+            <p class="summary-desc" data-i18n="resultsItem1Desc">
+              약 2.5시간 분량의 다양한 human motion을 학습하고, 시뮬레이션에서는 전체 motion을 검증한다.
+              실제 로봇에는 대표 clip들을 배포해 single-leg balance, get-up, kick, jump, cartwheel,
+              dance, running 같은 동작이 sim-to-real로 전이됨을 보인다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title" data-i18n="resultsItem2Title">Human-level agility and naturalness</p>
+            <p class="summary-desc" data-i18n="resultsItem2Desc">
+              야외의 불균일한 지면에서도 cartwheel이나 martial-arts motion 같은 고난도 동작을 수행한다.
+              walking/running에서는 ground reaction force와 user study를 통해 기존 controller보다 더
+              인간답고 자연스럽게 보인다는 결과를 제시한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title" data-i18n="resultsItem3Title">Versatile humanoid control</p>
+            <p class="summary-desc" data-i18n="resultsItem3Desc">
+              학습된 skill을 diffusion prior로 사용하고, test time에 cost guidance를 적용해 joystick
+              teleoperation, waypoint navigation, obstacle avoidance, motion inpainting 같은 unseen task를
+              별도 retraining 없이 수행한다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="resultsP2">
+        즉 Results의 핵심은 BeyondMimic이 단순히 motion을 잘 따라 하는 데서 끝나지 않는다는 점이다.
+        다양한 인간 동작을 실제 휴머노이드에 안정적으로 옮기고, 그 동작들을 새 목표에 맞게 재조합해
+        범용적인 humanoid control로 확장한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="discussionKicker">Discussion</p>
+      <h2 data-i18n="discussionTitle">BeyondMimic의 의미와 한계</h2>
+      <p data-i18n="discussionP1">
+        Discussion에서는 BeyondMimic이 humanoid control의 기존 가정을 어떻게 바꾸는지 강조한다.
+        핵심은 heavy domain randomization, motion-specific tuning, 복잡한 reward shaping 없이도
+        다양한 인간 동작을 실제 로봇으로 옮기고, 이를 새로운 task에 맞게 합성할 수 있다는 점이다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title" data-i18n="discussionItem1Title">Motion-specific policy를 넘어섬</p>
+            <p class="summary-desc" data-i18n="discussionItem1Desc">
+              하나의 원칙적인 RL formulation과 공유 hyperparameter로 수많은 motion을 학습하고,
+              motion마다 따로 튜닝하지 않아도 민첩성과 자연스러움을 유지한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title" data-i18n="discussionItem2Title">Imitation을 넘어 task-directed control로 확장</p>
+            <p class="summary-desc" data-i18n="discussionItem2Desc">
+              모델은 motion sequence를 단순히 외우는 것이 아니라, denoising 과정의 guidance를 통해
+              future trajectory를 조정하면서 obstacle avoidance, joystick command, recovery 같은 새로운
+              목표를 해결한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title" data-i18n="discussionItem3Title">General-purpose humanoid control로 가는 기반</p>
+            <p class="summary-desc" data-i18n="discussionItem3Desc">
+              학습은 task-agnostic이고 labeled data가 필요하지 않기 때문에, 새로운 human motion data를
+              추가하면 skill set을 계속 확장할 수 있다. 논문은 이를 humanoid behavior foundation model로
+              가는 한 단계로 본다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="discussionP2">
+        한계도 분명하다. Diffusion model은 state estimation 품질에 영향을 받고, 현재 0.64초 정도의 짧은
+        horizon은 장기 계획에는 부족하다. 또한 history conditioning이 안정성에는 도움이 되지만 반복적인
+        motion pattern에 갇히게 만들 수 있고, guidance weight는 아직 task마다 가볍게 조정해야 한다.
+      </p>
+      <p data-i18n="discussionP3">
+        따라서 앞으로는 sensor fusion이나 learned estimator로 state estimation을 개선하고, 더 긴 horizon의
+        planning과 세밀한 diffusion control을 다루는 방향이 중요하다. Supervised fine-tuning이나 adapter-style
+        control layer 같은 방법도 fine-grained trajectory control을 위해 고려할 수 있다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="methodsKicker">Materials and Methods</p>
+      <h2 data-i18n="methodsTitle">Overview</h2>
+      <p data-i18n="methodsP1">
+        BeyondMimic의 목표는 여러 unseen downstream task에서 민첩하고 자연스러운 humanoid control을
+        수행하는 것이다. 이를 위해 전체 시스템을 크게 두 단계 pipeline으로 구성한다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title" data-i18n="methodsItem1Title">Scalable Human Motion Tracking via RL</p>
+            <p class="summary-desc" data-i18n="methodsItem1Desc">
+              다양한 human motion을 휴머노이드가 따라 하도록 RL policy를 학습한다. 각 motion은 개별
+              policy로 학습하지만, reward, hyperparameter, training setup은 공유하는 one-recipe-fits-all
+              방식을 사용한다. 덕분에 motion마다 새로 튜닝하지 않고도 human-level agility와 naturalness를 유지한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title" data-i18n="methodsItem2Title">Versatile Humanoid Control via Guided Diffusion</p>
+            <p class="summary-desc" data-i18n="methodsItem2Desc">
+              첫 단계에서 배운 다양한 motion skill을 하나의 diffusion model로 통합한다. 이 모델은 다음
+              action만 예측하는 것이 아니라 future state와 action trajectory를 함께 예측하는 latent
+              state-action diffusion model이며, classifier guidance를 통해 test time에 새로운 objective에 맞게 조정된다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title" data-i18n="methodsItem3Title">Zero-shot sim-to-real deployment</p>
+            <p class="summary-desc" data-i18n="methodsItem3Desc">
+              학습은 모두 simulation에서 이루어지고, 추가 system identification 없이 실제 로봇에 zero-shot으로
+              배포된다. Real-time C++ deployment framework가 policy inference와 hardware execution을 낮은
+              latency로 동기화해 sim-to-real gap을 줄인다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="methodsP2">
+        요약하면 RL motion tracking으로 다양한 human skill을 안정적으로 얻고, VAE와 latent state-action
+        diffusion으로 그 skill들을 통합한 뒤, classifier guidance를 통해 unseen task에 맞게 online으로 조합한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="trackingKicker">Scalable Human Motion Tracking via RL</p>
+      <h2 data-i18n="trackingTitle">Motion tracking을 MDP로 정의하기</h2>
+      <p data-i18n="trackingP1">
+        이 파트는 다양한 human motion을 휴머노이드가 안정적으로 따라 하게 만드는 RL formulation을 설명한다.
+        핵심은 motion마다 reward나 hyperparameter를 새로 설계하지 않고, 같은 MDP와 같은 학습 recipe를
+        여러 motion에 적용하는 것이다.
+      </p>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="trackingMdpTitle">MDP objective</p>
+            <p class="formula-desc" data-i18n="trackingMdpDesc">
+              Policy는 observation을 보고 action을 내고, reference motion을 얼마나 잘 따라갔는지에 따라
+              reward를 받는다. RL은 이 누적 reward의 기대값을 최대화한다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="trackingMdpFormula">\[
+\max_{\pi}\ \mathbb{E}_{\pi}\left[\sum_{t=0}^{T}\gamma^t r_t\right]
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="trackingRefTitle">Reference motion</p>
+            <p class="formula-desc" data-i18n="trackingRefDesc">
+              Retargeting된 human motion은 generalized position과 velocity로 표현된다. Forward kinematics를
+              적용하면 각 body link의 pose와 twist를 얻을 수 있다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="trackingRefFormula">\[
+q^{ref}=(p^{ref},R^{ref},\theta^{ref})
+\in \mathbb{R}^{3}\times SO(3)\times\mathbb{R}^{n_{jnt}}
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingVelFormula">\[
+\nu^{ref}=(v^{ref},\omega^{ref},\dot{\theta}^{ref})
+\in \mathbb{R}^{3}\times\mathbb{R}^{3}\times\mathbb{R}^{n_{jnt}}
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingBodyFormula">\[
+T_b^{ref}=(p_b^{ref},R_b^{ref}),\qquad
+V_b^{ref}=(v_b^{ref},\omega_b^{ref})
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="trackingAnchorTitle">Anchor-centered tracking objective</p>
+            <p class="formula-desc" data-i18n="trackingAnchorDesc">
+              실제 로봇은 perturbation이나 sim-to-real mismatch 때문에 global drift가 생길 수 있다.
+              그래서 모든 body를 world frame에서 딱딱하게 맞추지 않고, anchor 기준의 상대 pose를 따라가게 한다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="trackingAnchorFormula">\[
+T_{anchor}^{des}=T_{anchor}^{ref},\qquad
+T_b^{des}=A(T_b^{ref},T_{anchor}),\quad b\ne b_{anchor}
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingTwistFormula">\[
+V_b^{des}=V_b^{ref}
+\]</div>
+            <div class="formula-note" data-i18n="trackingAnchorNote">
+              즉, motion style은 보존하되 global drift는 어느 정도 허용해서 robustness와 sim-to-real transfer를 높인다.
+            </div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="trackingObsTitle">Observation and action</p>
+            <p class="formula-desc" data-i18n="trackingObsDesc">
+              Observation은 reference phase와 robot proprioception으로 구성된다. Action은 normalized joint
+              command이고, joint position setpoint로 변환되어 low-level PD controller에 전달된다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="trackingObsFormula">\[
+o=[\psi,\ e_{anchor},\ V_{imu},\ \theta-\theta_0,\ \dot{\theta},\ a_{last}]
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingActionFormula">\[
+\theta^{sp}=\theta_0+\alpha\odot a,\qquad
+a\in\mathbb{R}^{n_{jnt}}
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="trackingRewardTitle">Reward</p>
+            <p class="formula-desc" data-i18n="trackingRewardDesc">
+              Target body들의 position, orientation, linear velocity, angular velocity error를 Gaussian-shaped
+              score로 바꿔 task reward를 만들고, 여기에 세 가지 regularization만 더한다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="trackingScoreFormula">\[
+r(\bar{e}_s,\sigma_s)=
+\exp\left(-\frac{\bar{e}_s}{\sigma_s^2}\right),
+\qquad s\in\{p,R,v,\omega\}
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingTaskFormula">\[
+r_{task}=
+\sum_{s\in\{p,R,v,\omega\}}
+r(\bar{e}_s,\sigma_s)
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="trackingTotalFormula">\[
+r=
+r_{task}
+-\lambda_l r_{limit}
+-\lambda_s r_{smooth}
+-\lambda_c r_{contact}
+\]</div>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="trackingP2">
+        정리하면 policy는 reference phase와 robot proprioception을 보고 joint setpoint action을 출력한다.
+        Reward는 target body들의 pose/velocity tracking을 중심으로 하되, joint limit, smoothness,
+        self-contact만 최소한으로 regularize한다. Anchor-centered objective는 motion style을 유지하면서도
+        global drift에 robust하게 만드는 장치다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker" data-i18n="diffusionKicker">Versatile Humanoid Control via Guided Diffusion</p>
+      <h2 data-i18n="diffusionTitle">배운 skill을 새로운 task에 맞게 조합하기</h2>
+      <p data-i18n="diffusionP1">
+        앞 단계의 RL motion tracking은 다양한 human motion을 실제 로봇이 따라 할 수 있는 skill로 만든다.
+        하지만 motion tracking만으로는 학습 때 본 motion을 재생하는 데 머물기 쉽다. 이 파트의 목표는
+        배운 skill들을 하나의 generative model에 넣고, test time에 새로운 objective를 주면 그 목표에 맞게
+        skill을 조합해 future trajectory를 만들어내는 것이다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title" data-i18n="diffusionItem1Title">Why diffusion?</p>
+            <p class="summary-desc" data-i18n="diffusionItem1Desc">
+              Diffusion model은 걷기, 뛰기, 차기, 회전, cartwheel 같은 multimodal motion distribution을
+              담을 수 있다. 또한 denoising 과정에서 classifier guidance를 사용하면, 생성 결과를 새로운
+              task objective 방향으로 밀 수 있다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title" data-i18n="diffusionItem2Title">State-action co-diffusion</p>
+            <p class="summary-desc" data-i18n="diffusionItem2Desc">
+              Waypoint, joystick, obstacle avoidance 같은 objective는 보통 action이 아니라 future state에
+              정의된다. 그래서 BeyondMimic은 action만 생성하지 않고, future state와 action trajectory를
+              함께 생성하는 latent state-action diffusion model을 사용한다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title" data-i18n="diffusionItem3Title">VAE latent space</p>
+            <p class="summary-desc" data-i18n="diffusionItem3Desc">
+              Humanoid trajectory는 차원이 크기 때문에, 먼저 VAE가 state/action trajectory를 compact한
+              latent representation으로 압축한다. Diffusion model은 이 latent space에서 skill distribution을 학습한다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="diffusionTrajectoryTitle">Future state-action trajectory</p>
+            <p class="formula-desc" data-i18n="diffusionTrajectoryDesc">
+              Diffusion sample은 단일 action이 아니라 짧은 horizon의 future states와 actions를 함께 포함한다.
+              그래서 future state에 task cost를 걸 수 있고, 그에 맞는 action도 함께 생성된다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="diffusionTrajectoryFormula">\[
+\tau_t=(s_{t:t+H},a_{t:t+H})
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="diffusionVaeTitle">VAE compression</p>
+            <p class="formula-desc" data-i18n="diffusionVaeDesc">
+              VAE는 고차원 trajectory를 latent code로 압축하고, decoder가 다시 trajectory/action 표현으로 복원한다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="diffusionVaeFormula">\[
+z=E(x),\qquad \hat{x}=D(z)
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title" data-i18n="diffusionGuidanceTitle">Classifier guidance at test time</p>
+            <p class="formula-desc" data-i18n="diffusionGuidanceDesc">
+              Inference 중에는 task-specific cost의 gradient를 사용해 predicted trajectory를 조정한다.
+              직관적으로는 그럴듯한 human motion prior를 유지하면서 목표를 만족하는 방향으로 sample을 밀어준다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula" data-i18n="diffusionCostFormula">\[
+G(\hat{\tau}_t)=
+\sum_{i=0}^{H}\left\lVert P_{xy,i}(\hat{\tau}_t)-g_p\right\rVert^2
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula" data-i18n="diffusionUpdateFormula">\[
+\hat{\tau}\leftarrow
+\hat{\tau}-\eta\nabla_{\hat{\tau}}G(\hat{\tau})
+\]</div>
+          </div>
+        </div>
+      </div>
+
+      <p data-i18n="diffusionP2">
+        결과적으로 diffusion model은 human motion prior 역할을 하고, guidance는 task objective 역할을 한다.
+        이 구조 덕분에 joystick teleoperation, waypoint navigation, obstacle avoidance, motion inpainting,
+        skill transition 같은 task를 별도 task-specific training 없이 수행할 수 있다.
+      </p>
+    </section>
+
+    <div class="language-switch" aria-label="Language switcher">
+      <button class="language-button is-active" type="button" data-lang="ko">한국어</button>
+      <button class="language-button" type="button" data-lang="en">English</button>
+    </div>
+  </main>
+  <script defer src="assets/js/beyond-mimic.js"></script>
+</body>
+</html>
