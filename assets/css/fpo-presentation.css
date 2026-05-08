@@ -325,8 +325,8 @@ p {
   margin-top: 18px;
 }
 
-.perspective-stack {
-  grid-template-columns: 1fr;
+.two-col.perspective-stack {
+  grid-template-columns: minmax(0, 1fr) !important;
 }
 
 .card {
