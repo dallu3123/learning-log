@@ -150,7 +150,7 @@
       <div class="detail-panel" id="section-3-panel">
         <div class="detail-inner">
           <p data-i18n="section3P1">
-            Flow / diffusion 모델에서는 정확한 log-likelihood 대신, 그 하한인 ELBO를 최적화하는 방식이 많이 사용된다.
+            Flow / diffusion 모델에서는 정확한 log-likelihood 대신, 그 하한인 ELBO를 최적화하는 방식이 사용된다.
           </p>
           <div class="detail-content deep-dive">
             <h3 class="detail-title" data-i18n="section3DeepTitle">왜 ELBO가 나오는가?</h3>
@@ -359,12 +359,68 @@
               Kingma &amp; Gao는 먼저 diffusion / flow matching objective를 noise level \(\lambda\)에 대한 weighted denoising loss로 쓴다. 여기서 \(\lambda\)는 log-SNR이고, flow matching의 \(\tau\)와 일대일로 대응되는 noise level 변수로 보면 된다.
             </p>
             <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int_{\lambda_{\min}}^{\lambda_{\max}}w(\lambda)\,\ell_\theta(a_\lambda,\lambda)\,d\lambda\]</div>
+            <details class="inline-detail">
+              <summary>Flow matching에서는 \(w(\lambda)\)가 무엇인가?</summary>
+              <div class="inline-detail-body">
+                <p>
+                  Flow matching 원래 loss는 보통 시간 \(\tau\)에 대해 균등하게 샘플링하므로, \(\tau\)-좌표에서는 별도의 weight가 없는 것처럼 보인다.
+                </p>
+                <div class="formula">\[\mathcal{L}_{\mathrm{CFM}}=\mathbb{E}_{\tau,\epsilon}\left[\left\lVert v_\theta(a_\tau,\tau,s)-u_\tau\right\rVert^2\right]\]</div>
+                <p>
+                  하지만 Kingma &amp; Gao의 weighted denoising loss는 \(\tau\)가 아니라 log-SNR noise level \(\lambda\)에 대한 적분으로 쓴다. 그래서 \(\tau\rightarrow\lambda\) 변수 변환이 필요하다.
+                </p>
+                <div class="formula">\[a_\tau=\tau a+(1-\tau)\epsilon\]</div>
+                <p>
+                  이 path에서는 signal coefficient와 noise coefficient가 다음과 같다.
+                </p>
+                <div class="formula">\[\alpha_\tau=\tau,\qquad \sigma_\tau=1-\tau\]</div>
+                <p>
+                  따라서 log-SNR은 다음처럼 된다.
+                </p>
+                <div class="formula">\[\lambda=\log\frac{\alpha_\tau^2}{\sigma_\tau^2}=\log\frac{\tau^2}{(1-\tau)^2}=2\log\frac{\tau}{1-\tau}\]</div>
+                <p>
+                  이 식을 \(\tau\)에 대해 풀면,
+                </p>
+                <div class="formula">\[\tau=\frac{1}{1+e^{-\lambda/2}}\]</div>
+                <p>
+                  \(\tau\sim U(0,1)\)를 \(\lambda\)-좌표로 바꾸면, \(\lambda\)에 대한 density가 생긴다.
+                </p>
+                <div class="formula">\[p(\lambda)=\left|\frac{d\tau}{d\lambda}\right|=\frac{\mathrm{sech}^2(\lambda/4)}{8}\]</div>
+                <p>
+                  이제 velocity target은 \(u_\tau=a-\epsilon\)이다. 위 path 식에서 \(a\)를 \(\epsilon\)으로 표현하면,
+                </p>
+                <div class="formula">\[u_\tau=a-\epsilon=\frac{a_\tau-\epsilon}{\tau}\]</div>
+                <p>
+                  모델 velocity도 \(\epsilon\)-prediction 형태로 쓰면 \(v_\theta(a_\tau,\tau,s)=(a_\tau-\hat{\epsilon}_\theta)/\tau\)처럼 볼 수 있다. 따라서 velocity matching loss와 \(\epsilon\)-prediction loss는 다음 scale factor로 연결된다.
+                </p>
+                <div class="formula">\[\left\lVert v_\theta(a_\tau,\tau,s)-u_\tau\right\rVert^2=\frac{1}{\tau^2}\left\lVert\epsilon-\hat{\epsilon}_\theta(a_\tau,\tau,s)\right\rVert^2\]</div>
+                <p>
+                  그런데 \(\tau^{-1}=1+e^{-\lambda/2}\)이므로,
+                </p>
+                <div class="formula">\[\left\lVert v_\theta-u_\tau\right\rVert^2=(1+e^{-\lambda/2})^2\left\lVert\epsilon-\hat{\epsilon}_\theta\right\rVert^2\]</div>
+                <p>
+                  따라서 \(\lambda\)-좌표에서의 flow matching weight는 “\(\tau\rightarrow\lambda\) density”와 “velocity loss를 \(\epsilon\)-prediction loss로 바꾸는 scale”이 곱해진 값이다.
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=2p(\lambda)(1+e^{-\lambda/2})^2\]</div>
+                <p>
+                  여기에 \(p(\lambda)\)를 넣으면,
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=2\cdot\frac{\mathrm{sech}^2(\lambda/4)}{8}\cdot(1+e^{-\lambda/2})^2=e^{-\lambda/2}\]</div>
+                <p>
+                  그래서 flow matching은 시간 \(\tau\)-좌표에서는 weight가 없는 MSE처럼 보이지만, Kingma &amp; Gao의 log-SNR 좌표에서는 다음 weight를 갖는다.
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=e^{-\lambda/2}\]</div>
+                <div class="note">
+                  즉, \(w_{\mathrm{FM}}\)은 갑자기 정한 값이 아니라, uniform \(\tau\) sampling을 log-SNR 좌표로 바꾸고 velocity loss를 \(\epsilon\)-prediction loss로 변환하면서 생기는 weight다.
+                </div>
+              </div>
+            </details>
             <p>
               핵심 보조정리는, 각 noise level에서의 denoising error \(\ell_\theta\)가 그 noise level 이후 latent path의 KL gap이 얼마나 변하는지를 나타낸다는 것이다.
             </p>
             <div class="formula">\[\ell_\theta(a_\lambda,\lambda)\,d\lambda \;\Longleftrightarrow\; d\,D_{\mathrm{KL}}\!\left(q_{\lambda:T}\,\|\,p_{\theta,\lambda:T}\right)\]</div>
             <p>
-              즉, 모델이 denoising 방향을 틀리게 예측할수록 실제 forward path \(q\)와 모델 reverse path \(p_\theta\) 사이의 KL gap이 커진다.
+              즉, 모델이 denoising / flow 방향을 틀리게 예측할수록 실제 forward path \(q\)와 모델 reverse path \(p_\theta\) 사이의 KL gap이 커진다.
             </p>
             <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int w(\lambda)\,dK_\theta(\lambda)+C_0\]</div>
             <p>
@@ -397,6 +453,33 @@
             <p>
               이때 \(\log p_\theta(a_\lambda)\)의 forward-data term과 entropy term 중 \(\theta\)와 무관한 부분을 constant로 묶으면, KL gap을 negative ELBO로 볼 수 있다.
             </p>
+            <details class="inline-detail">
+              <summary>왜 \(\theta\)와 무관한 항을 constant로 묶는가?</summary>
+              <div class="inline-detail-body">
+                <p>
+                  VI identity를 정리하면 KL gap은 다음처럼 쓸 수 있다.
+                </p>
+                <div class="formula">\[K_\theta(\lambda)=\log p_\theta(a_\lambda)-\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)\]</div>
+                <p>
+                  여기서 중요한 점은 \(a_\lambda\)가 모델이 새로 만든 sample이 아니라, 우리가 정한 forward noising process \(q(a_\lambda\mid a)\)에서 나온 noisy action이라는 것이다.
+                </p>
+                <div class="formula">\[a_\lambda\sim q(a_\lambda\mid a)\]</div>
+                <p>
+                  이 forward process는 noise schedule, Gaussian noise, \(q\)의 entropy 같은 항으로 정해지고, 모델 파라미터 \(\theta\)와 무관하다.
+                </p>
+                <div class="formula">\[\frac{\partial}{\partial\theta}\,\mathrm{Entropy}(q)=0\]</div>
+                <p>
+                  따라서 forward noising process와 data-side distribution만으로 정해지는 항들은 학습 중에 변하지 않으므로 constant \(C\)로 묶을 수 있다.
+                </p>
+                <p>
+                  그러면 KL gap에서 \(\theta\)-dependent하게 남는 부분은 ELBO의 음수 방향이다.
+                </p>
+                <div class="formula">\[K_\theta(\lambda)=-\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+C_2\]</div>
+                <div class="note">
+                  즉, \(\log p_\theta(a_\lambda)\) 전체가 항상 constant라는 뜻은 아니다. Kingma &amp; Gao의 분해에서 forward/data/entropy 쪽의 \(\theta\)-independent 항을 constant로 묶으면, 최적화 관점에서 KL gap을 negative ELBO로 볼 수 있다는 뜻이다.
+                </div>
+              </div>
+            </details>
             <div class="formula">\[K_\theta(\lambda)=-\mathrm{ELBO}_{\lambda,\theta}(a_\lambda)+C_2\]</div>
             <p>
               따라서 최종적으로 weighted denoising loss, 그리고 flow matching의 CFM loss는 noise-perturbed action들의 negative ELBO 평균과 같아진다.
@@ -412,6 +495,62 @@
               Kingma &amp; Gao first write the diffusion / flow matching objective as a weighted denoising loss over the noise level \(\lambda\). Here, \(\lambda\) is the log-SNR, which can be viewed as a noise-level coordinate corresponding to the flow matching time \(\tau\).
             </p>
             <div class="formula">\[\mathcal{L}_{w,\theta}(a)=\int_{\lambda_{\min}}^{\lambda_{\max}}w(\lambda)\,\ell_\theta(a_\lambda,\lambda)\,d\lambda\]</div>
+            <details class="inline-detail">
+              <summary>What is \(w(\lambda)\) in flow matching?</summary>
+              <div class="inline-detail-body">
+                <p>
+                  The original flow matching loss usually samples time \(\tau\) uniformly, so in the \(\tau\)-coordinate it looks like there is no extra weight.
+                </p>
+                <div class="formula">\[\mathcal{L}_{\mathrm{CFM}}=\mathbb{E}_{\tau,\epsilon}\left[\left\lVert v_\theta(a_\tau,\tau,s)-u_\tau\right\rVert^2\right]\]</div>
+                <p>
+                  Kingma &amp; Gao's weighted denoising loss, however, is written as an integral over the log-SNR noise level \(\lambda\), not over \(\tau\). Therefore, we need a \(\tau\rightarrow\lambda\) change of variables.
+                </p>
+                <div class="formula">\[a_\tau=\tau a+(1-\tau)\epsilon\]</div>
+                <p>
+                  For this path, the signal and noise coefficients are:
+                </p>
+                <div class="formula">\[\alpha_\tau=\tau,\qquad \sigma_\tau=1-\tau\]</div>
+                <p>
+                  Therefore, the log-SNR is:
+                </p>
+                <div class="formula">\[\lambda=\log\frac{\alpha_\tau^2}{\sigma_\tau^2}=\log\frac{\tau^2}{(1-\tau)^2}=2\log\frac{\tau}{1-\tau}\]</div>
+                <p>
+                  Solving this expression for \(\tau\) gives:
+                </p>
+                <div class="formula">\[\tau=\frac{1}{1+e^{-\lambda/2}}\]</div>
+                <p>
+                  When \(\tau\sim U(0,1)\) is rewritten in the \(\lambda\)-coordinate, it induces the following density over \(\lambda\).
+                </p>
+                <div class="formula">\[p(\lambda)=\left|\frac{d\tau}{d\lambda}\right|=\frac{\mathrm{sech}^2(\lambda/4)}{8}\]</div>
+                <p>
+                  The velocity target is \(u_\tau=a-\epsilon\). From the path equation, we can express it using \(a_\tau\) and \(\epsilon\):
+                </p>
+                <div class="formula">\[u_\tau=a-\epsilon=\frac{a_\tau-\epsilon}{\tau}\]</div>
+                <p>
+                  If the model velocity is written through an \(\epsilon\)-prediction form, \(v_\theta(a_\tau,\tau,s)=(a_\tau-\hat{\epsilon}_\theta)/\tau\). Thus, the velocity matching loss and the \(\epsilon\)-prediction loss differ by the following scale factor.
+                </p>
+                <div class="formula">\[\left\lVert v_\theta(a_\tau,\tau,s)-u_\tau\right\rVert^2=\frac{1}{\tau^2}\left\lVert\epsilon-\hat{\epsilon}_\theta(a_\tau,\tau,s)\right\rVert^2\]</div>
+                <p>
+                  Since \(\tau^{-1}=1+e^{-\lambda/2}\),
+                </p>
+                <div class="formula">\[\left\lVert v_\theta-u_\tau\right\rVert^2=(1+e^{-\lambda/2})^2\left\lVert\epsilon-\hat{\epsilon}_\theta\right\rVert^2\]</div>
+                <p>
+                  Therefore, the flow matching weight in the \(\lambda\)-coordinate is the product of the \(\tau\rightarrow\lambda\) density and the scale factor that converts velocity loss into \(\epsilon\)-prediction loss.
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=2p(\lambda)(1+e^{-\lambda/2})^2\]</div>
+                <p>
+                  Substituting \(p(\lambda)\) gives:
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=2\cdot\frac{\mathrm{sech}^2(\lambda/4)}{8}\cdot(1+e^{-\lambda/2})^2=e^{-\lambda/2}\]</div>
+                <p>
+                  So flow matching looks unweighted in the \(\tau\)-coordinate, but in Kingma &amp; Gao's log-SNR coordinate it has the following weight:
+                </p>
+                <div class="formula">\[w_{\mathrm{FM}}(\lambda)=e^{-\lambda/2}\]</div>
+                <div class="note">
+                  In short, \(w_{\mathrm{FM}}\) is not chosen arbitrarily. It appears when uniform \(\tau\) sampling is rewritten in log-SNR coordinates and the velocity loss is converted into an \(\epsilon\)-prediction loss.
+                </div>
+              </div>
+            </details>
             <p>
               The key lemma is that the denoising error \(\ell_\theta\) at each noise level describes how the KL gap of the latent path changes after that noise level.
             </p>
