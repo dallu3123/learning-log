@@ -325,6 +325,10 @@ p {
   margin-top: 18px;
 }
 
+.perspective-stack {
+  grid-template-columns: 1fr;
+}
+
 .card {
   padding: 20px;
   border-radius: 8px;
