@@ -73,7 +73,50 @@
             <p data-i18n="deepP1">
               우리가 알고 싶은 값은 state \(s\)에서 최종 action \(a\)가 나올 확률밀도 \(\pi_\theta(a \mid s)\)이다. 그런데 Flow policy에서는 \(a\)가 바로 샘플링되는 것이 아니라, 쉬운 noise 분포에서 시작한 점이 flow를 따라 이동한 결과로 만들어진다.
             </p>
-            <div class="formula">\[z_0 \sim \mathcal{N}(0, I), \qquad z_0 \rightarrow z_1 \rightarrow \cdots \rightarrow z_T = a\]</div>
+            <div class="two-col" data-lang-scope="ko">
+              <div class="card">
+                <div class="card-title">Flow 관점</div>
+                <p class="mini">
+                  noise에서 시작한 점이 continuous velocity field를 따라 움직여 action이 된다.
+                </p>
+                <div class="formula">\[z(0)=\epsilon,\qquad \frac{dz(t)}{dt}=v_\theta(z(t),t,s),\qquad z(T)=a\]</div>
+                <p class="mini">
+                  이때 likelihood 계산은 ODE 경로를 따라 확률밀도가 얼마나 압축되거나 팽창했는지를 추적하는 문제다.
+                </p>
+              </div>
+              <div class="card">
+                <div class="card-title">Diffusion 관점</div>
+                <p class="mini">
+                  clean action과 noise 사이의 여러 noisy variables를 latent trajectory로 본다.
+                </p>
+                <div class="formula">\[a_t=\alpha_t a+\sigma_t\epsilon,\qquad z=(a_1,\ldots,a_T)\]</div>
+                <p class="mini">
+                  또는 reverse 방향으로는 \(a_T\sim\mathcal{N}(0,I)\)에서 시작해 \(a_0=a\)로 denoise되는 경로로 볼 수 있다.
+                </p>
+              </div>
+            </div>
+            <div class="two-col" data-lang-scope="en">
+              <div class="card">
+                <div class="card-title">Flow View</div>
+                <p class="mini">
+                  A point that starts from noise moves along a continuous velocity field and becomes the action.
+                </p>
+                <div class="formula">\[z(0)=\epsilon,\qquad \frac{dz(t)}{dt}=v_\theta(z(t),t,s),\qquad z(T)=a\]</div>
+                <p class="mini">
+                  In this view, likelihood computation means tracking how probability density compresses or expands along the ODE path.
+                </p>
+              </div>
+              <div class="card">
+                <div class="card-title">Diffusion View</div>
+                <p class="mini">
+                  The intermediate noisy variables between the clean action and noise are treated as a latent trajectory.
+                </p>
+                <div class="formula">\[a_t=\alpha_t a+\sigma_t\epsilon,\qquad z=(a_1,\ldots,a_T)\]</div>
+                <p class="mini">
+                  Equivalently, in the reverse direction, we can view the path as denoising from \(a_T\sim\mathcal{N}(0,I)\) to \(a_0=a\).
+                </p>
+              </div>
+            </div>
             <p data-i18n="deepP2">
               따라서 \(a\)의 likelihood를 계산하려면 “어떤 \(z_0\)가 \(a\)가 되었는가?”뿐만 아니라, 그 변환 과정에서 확률밀도가 얼마나 압축되거나 팽창했는지도 알아야 한다.
             </p>
