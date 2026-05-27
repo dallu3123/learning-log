@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOODL</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/doodl.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to Diffusion / Flow notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">DOODL 정리</div>
+      <h1>DOODL</h1>
+      <p class="subtitle">
+        Text-to-image diffusion model의 최종 생성 이미지에 직접 loss를 걸고, 그 gradient로 초기 diffusion latent를 최적화하는 plug-and-play guidance 방법.
+      </p>
+      <div class="pipeline" aria-label="DOODL pipeline">
+        <div class="pipeline-step">Text prompt</div>
+        <div class="pipeline-step">Initial noise latent</div>
+        <div class="pipeline-step">Full diffusion chain</div>
+        <div class="pipeline-step">External model loss</div>
+        <div class="pipeline-step">Latent update</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Introduction</p>
+      <h2>이 논문은 무슨 문제에서 시작하나?</h2>
+      <p>
+        DOODL의 출발점은 Stable Diffusion, Imagen 같은 text-conditioned diffusion model이다.
+        이런 모델은 text prompt와 image-caption pair로 학습되어, 사용자가 입력한 문장에 맞는 이미지를 생성한다.
+      </p>
+      <p>
+        하지만 이 conditioning 방식에는 한계가 있다. text prompt만으로는 depth map, image classifier, audio, aesthetic scorer 같은
+        다른 종류의 신호를 바로 조건으로 쓰기 어렵다. 그래서 논문은 이미 학습된 diffusion model을 다시 학습하지 않고도,
+        외부 모델이 주는 gradient로 생성 과정을 조종하는 plug-and-play guidance를 원한다.
+      </p>
+      <p>
+        DOODL이 노리는 사용 방식은 꽤 넓다. 예를 들어 CLIP text encoder로 복잡한 prompt를 더 잘 따르게 만들거나,
+        새 class classifier로 Stable Diffusion이 잘 모르는 새 개체를 그리게 하거나, CLIP visual encoder로 특정 이미지를 닮게 하거나,
+        aesthetic scoring model로 더 보기 좋은 이미지를 만들 수 있다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Pretrained diffusion model은 그대로 둔다</p>
+            <p class="summary-desc">Stable Diffusion 같은 모델을 새 데이터로 다시 학습하거나 fine-tuning하지 않고 사용한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">외부 모델로 원하는 조건을 정의한다</p>
+            <p class="summary-desc">CLIP, fine-grained classifier, aesthetic scorer처럼 이미지가 목표를 만족하는지 평가하는 모델을 붙인다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">최종 이미지 기준으로 gradient를 계산한다</p>
+            <p class="summary-desc">중간 noisy image나 1-step approximation이 아니라, 실제 diffusion chain이 만든 최종 pixel image에 loss를 건다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">4</div>
+          <div>
+            <p class="summary-title">새로운 guidance 능력을 보인다</p>
+            <p class="summary-desc">DrawBench prompt 개선, fine-grained vocabulary expansion, image-conditioned personalization, aesthetic improvement를 실험한다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Terms</p>
+      <h2>Introduction에서 헷갈릴 수 있는 용어</h2>
+      <p>
+        vision generative 논문이 처음이면, 이 논문은 용어가 조금 빽빽하게 느껴질 수 있다.
+        일단 아래 단어들만 잡으면 Introduction의 논지는 꽤 선명해진다.
+      </p>
+      <div class="term-grid">
+        <div class="term-card">
+          <p class="term-title">Text-conditioned diffusion model</p>
+          <p class="term-desc">Text prompt를 조건으로 받아 noise에서 이미지를 denoising해 나가는 생성 모델이다.</p>
+        </div>
+        <div class="term-card">
+          <p class="term-title">Conditioning modality</p>
+          <p class="term-desc">모델을 조종하는 입력 신호의 종류다. 예를 들면 text, image, depth, class label, audio가 모두 modality가 될 수 있다.</p>
+        </div>
+        <div class="term-card">
+          <p class="term-title">Classifier guidance</p>
+          <p class="term-desc">외부 classifier의 gradient를 이용해 diffusion sampling을 원하는 class나 objective 방향으로 밀어주는 방법이다.</p>
+        </div>
+        <div class="term-card">
+          <p class="term-title">Noise-aware classifier</p>
+          <p class="term-desc">깨끗한 이미지가 아니라 diffusion 중간 단계의 noisy image를 보고도 정확한 gradient를 주도록 따로 학습한 classifier다.</p>
+        </div>
+        <div class="term-card">
+          <p class="term-title">One-step approximation</p>
+          <p class="term-desc">전체 denoising chain을 끝까지 돌리지 않고, 현재 timestep에서 한 번만 대충 복원한 이미지로 loss를 계산하는 근사다.</p>
+        </div>
+        <div class="term-card">
+          <p class="term-title">Diffusion latent</p>
+          <p class="term-desc">Stable Diffusion에서는 pixel을 직접 다루기보다 압축된 latent space에서 noise와 denoising을 다룬다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Existing Guidance</p>
+      <h2>기존 classifier guidance는 왜 불편한가?</h2>
+      <p>
+        논문이 보는 기존 방법은 크게 두 가지다. 첫 번째는 noise-aware classifier를 새로 학습하는 방법이고,
+        두 번째는 최종 이미지를 한 단계 denoising으로 근사해서 gradient를 구하는 방법이다.
+      </p>
+      <div class="loop-grid">
+        <div class="loop-card">
+          <p class="loop-index">A</p>
+          <p class="loop-title">Noise-aware classifier</p>
+          <p class="loop-desc">
+            중간 noisy state에 정확한 gradient를 줄 수 있지만, classifier를 새로 학습해야 한다. 데이터와 compute가 필요하고, 매번 새로운 조건에 맞게 준비하기 어렵다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">B</p>
+          <p class="loop-title">One-step guidance</p>
+          <p class="loop-desc">
+            기존 classifier를 바로 쓸 수 있지만, loss를 최종 이미지가 아니라 대충 복원한 이미지에 건다. 그래서 gradient가 실제 최종 생성 결과와 어긋날 수 있다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">C</p>
+          <p class="loop-title">DOODL의 문제의식</p>
+          <p class="loop-desc">
+            외부 모델은 그대로 쓰고 싶고, gradient는 최종 이미지 기준으로 정확하게 얻고 싶다. 문제는 full diffusion chain backpropagation의 memory cost다.
+          </p>
+        </div>
+      </div>
+      <div class="formula-stack" aria-label="Classifier guidance mismatch">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">기존 근사의 핵심 문제</p>
+            <p class="formula-desc">현재 noisy latent에서 한 번 복원한 이미지 \(x_0^*\)가 실제 최종 이미지 \(x_0\)와 다르면, guidance gradient도 엉뚱한 방향이 된다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+\nabla_{x_t} c_{\mathrm{clf}}(x_0^*)
+\quad \not\approx \quad
+\nabla_{x_t} c_{\mathrm{clf}}(x_0)
+\]</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">DOODL Idea</p>
+      <h2>DOODL은 무엇을 바꾸나?</h2>
+      <p>
+        DOODL은 중간 step마다 guidance를 조금씩 넣는 대신, 처음 noise latent \(x_T\) 자체를 최적화한다.
+        즉 “이 noise에서 시작해서 diffusion chain을 끝까지 돌렸을 때 나오는 최종 이미지가 외부 모델의 기준을 만족하도록”
+        초기 latent를 gradient descent로 업데이트한다.
+      </p>
+      <div class="formula-stack" aria-label="DOODL objective">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Full generation을 함수처럼 본다</p>
+            <p class="formula-desc">Diffusion sampling 전체를 하나의 함수 \(f\)로 보면, 초기 latent \(x_T\)가 최종 이미지 \(x_0\)로 변환된다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+x_0 = f(x_T)
+\]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">최종 이미지에 loss를 건다</p>
+            <p class="formula-desc">외부 모델이 계산한 loss를 최종 pixel image 위에서 계산하고, 그 gradient를 \(x_T\)까지 backpropagation한다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+x_T \leftarrow x_T - \eta \nabla_{x_T} c(f(x_T))
+\]</div>
+          </div>
+        </div>
+      </div>
+      <p>
+        여기서 어려운 점은 full diffusion chain이 길어서 일반적인 backpropagation은 memory가 너무 많이 든다는 것이다.
+        DOODL은 EDICT라는 invertible diffusion process를 사용해 backward pass에서 중간 activation을 저장하지 않고 재구성한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Related Work</p>
+      <h2>이 논문은 어떤 흐름 위에 있나?</h2>
+      <p>
+        Related Work의 핵심 대비는 learning-based conditioning과 guidance-based conditioning이다.
+        ControlNet, DreamBooth, Textual Inversion 같은 학습 기반 방법은 강력하지만 새 데이터와 학습 과정이 필요하다.
+        반면 classifier guidance나 DOODL 같은 guidance 기반 방법은 이미 학습된 recognition model을 붙여 생성 과정을 조종한다.
+      </p>
+      <div class="comparison-grid">
+        <div class="comparison-card">
+          <p class="comparison-title">Learning-based methods</p>
+          <p class="comparison-desc">
+            새로운 condition을 모델 내부에 넣기 위해 추가 학습을 한다. 데이터가 있고 compute를 쓸 수 있으면 강하지만,
+            매번 새 control signal마다 준비 비용이 생긴다.
+          </p>
+        </div>
+        <div class="comparison-card">
+          <p class="comparison-title">Guidance-based methods</p>
+          <p class="comparison-desc">
+            pretrained diffusion model은 그대로 두고, 외부 classifier나 scoring model의 gradient로 sampling을 조종한다.
+            DOODL은 이 계열에 속한다.
+          </p>
+        </div>
+      </div>
+      <p>
+        여기서 DOODL의 위치는 “diffusion model에 latent optimization을 적용한 guidance 방법”이다.
+        GAN이나 VAE에서는 latent를 직접 최적화하는 방식이 이미 쓰였지만, diffusion에서는 denoising chain이 길고 메모리 비용이 커서 쉽게 쓰기 어려웠다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Background</p>
+      <h2>Denoising diffusion model은 어떻게 생성하나?</h2>
+      <p>
+        DDM은 학습 때 깨끗한 이미지 \(x\)에 noise \(\epsilon\)을 섞어 noisy image \(x_t\)를 만들고,
+        모델이 그 noise를 맞추도록 학습한다. timestep \(t\)가 클수록 더 많이 망가진 이미지라고 보면 된다.
+      </p>
+      <div class="formula-stack" aria-label="Denoising diffusion model background">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Forward noising</p>
+            <p class="formula-desc">깨끗한 이미지에 schedule \(\alpha_t\)에 따라 noise를 섞어 학습용 noisy sample을 만든다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+x_t = \sqrt{\alpha_t}x + \sqrt{1-\alpha_t}\epsilon,
+\qquad \epsilon \sim \mathcal{N}(0,I)
+\]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Reverse generation</p>
+            <p class="formula-desc">생성 때는 pure noise \(x_T\)에서 시작해 denoising function들을 순서대로 적용해 최종 이미지 \(x_0\)를 만든다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+x_0 =
+\left[
+\Theta_{(0,C)} \circ \Theta_{(1,C)} \circ \cdots \circ \Theta_{(T,C)}
+\right](x_T)
+\]</div>
+          </div>
+        </div>
+      </div>
+      <p>
+        여기서 \(C\)는 text prompt 같은 conditioning signal이다. DOODL은 이 전체 reverse generation을 하나의 긴 함수처럼 보고,
+        최종 \(x_0\)에 걸린 loss를 처음 \(x_T\)까지 미분하려고 한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Memory Problem</p>
+      <h2>왜 그냥 backprop하면 안 되나?</h2>
+      <p>
+        이론적으로는 간단하다. 최종 이미지가 \(x_0=f(x_T)\)라면 원하는 loss \(c(x_0)\)를 줄이도록
+        \(\nabla_{x_T}c(f(x_T))\)를 계산하면 된다. 하지만 실제 diffusion sampling은 U-Net을 수십 번 통과하는 긴 chain이다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Naive backpropagation</p>
+            <p class="summary-desc">각 denoising step의 activation을 저장해야 해서 memory cost가 step 수에 비례한다. 논문은 최신 diffusion model에서 거의 terabyte급이 될 수 있다고 설명한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Gradient checkpointing</p>
+            <p class="summary-desc">메모리를 줄일 수 있지만, 중간 값을 다시 계산해야 해서 runtime이 크게 늘어난다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Invertible process</p>
+            <p class="summary-desc">forward 때 중간 activation을 저장하지 않고, backward 때 output에서 이전 state를 복원하면 memory를 크게 줄일 수 있다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">EDICT</p>
+      <h2>EDICT는 왜 필요한가?</h2>
+      <p>
+        DOODL은 EDICT라는 exactly invertible diffusion process를 사용한다. 일반 diffusion sampler는 한 step 전 상태를 완벽하게 복원하기 어렵지만,
+        EDICT는 latent를 \(x_t, y_t\) 두 개의 pair로 들고 가면서 서로를 이용해 update하고, 마지막에 invertible averaging을 한다.
+      </p>
+      <div class="loop-grid">
+        <div class="loop-card">
+          <p class="loop-index">01</p>
+          <p class="loop-title">Latent pair</p>
+          <p class="loop-desc">
+            하나의 latent가 아니라 \((x_t, y_t)\) pair를 사용한다. 처음에는 둘 다 같은 Gaussian noise에서 시작한다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">02</p>
+          <p class="loop-title">Coupled update</p>
+          <p class="loop-desc">
+            \(x\)를 update할 때 \(y\)를 보고, \(y\)를 update할 때 갱신된 \(x\)를 본다. normalizing flow의 coupling layer와 비슷한 감각이다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">03</p>
+          <p class="loop-title">Exact inversion</p>
+          <p class="loop-desc">
+            각 step을 거꾸로 풀 수 있어서 backward pass에서 중간 state를 저장하지 않고 재구성할 수 있다.
+          </p>
+        </div>
+      </div>
+      <p>
+        그래서 EDICT는 DOODL의 계산 엔진에 가깝다. “최종 이미지 기준 loss를 쓰자”는 아이디어 자체는 단순하지만,
+        그 gradient를 diffusion chain 전체에 걸쳐 실용적으로 계산하게 해주는 장치가 EDICT다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Method Details</p>
+      <h2>DOODL의 실제 최적화 루프</h2>
+      <p>
+        Section 4에서는 DOODL이 vanilla gradient descent를 그대로 쓰지 않고, 이미지 품질이 무너지지 않도록 몇 가지 안정화 장치를 둔다.
+        핵심은 latent가 diffusion model이 기대하는 Gaussian noise manifold에서 너무 멀어지지 않게 하는 것이다.
+      </p>
+      <div class="loop-grid">
+        <div class="loop-card">
+          <p class="loop-index">A</p>
+          <p class="loop-title">Average latent pair</p>
+          <p class="loop-desc">
+            EDICT의 fully noised latent pair \(x_T, y_T\)를 optimization step 뒤에 평균내서 latent drift를 줄인다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">B</p>
+          <p class="loop-title">Renormalize norm</p>
+          <p class="loop-desc">
+            초기 noise의 norm으로 다시 맞춰 latent가 Gaussian shell 위에 머물도록 한다. 품질 보존을 위한 중요한 trick이다.
+          </p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">C</p>
+          <p class="loop-title">Stabilize gradients</p>
+          <p class="loop-desc">
+            multi-crop augmentation, momentum, gradient clipping, 작은 noise perturbation으로 optimization을 안정화한다.
+          </p>
+        </div>
+      </div>
+      <a class="proof-link" href="source/DOODL.pdf">원문 PDF 열기</a>
+    </section>
+  </main>
+  <script defer src="assets/js/doodl.js"></script>
+</body>
+</html>

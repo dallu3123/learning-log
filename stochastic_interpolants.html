@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stochastic Interpolants</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+  <link rel="stylesheet" href="assets/css/stochastic-interpolants.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to notes</a>
+    </nav>
+
+    <section class="hero si-hero">
+      <div class="badge">Stochastic Interpolants 정리</div>
+      <h1>Stochastic Interpolants</h1>
+      <p class="subtitle">
+        Flow matching과 diffusion model을 같은 언어로 보기 위한 가장 쉬운 단계별 정리.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step-by-step</p>
+      <h2>처음부터 끝까지 단계별로 보기</h2>
+      <p>
+        아래 순서만 먼저 따라가면 된다. 핵심은 “중간 분포 경로를 먼저 만들고, 그 경로를 ODE나 SDE로 따라간다”는 것이다.
+      </p>
+      <div class="step-ladder" aria-label="Stochastic interpolants step-by-step explanation">
+        <article class="step-card">
+          <span class="step-number">1</span>
+          <div>
+            <h3>목표를 정한다</h3>
+            <p>쉬운 분포 \(\rho_0\)에서 시작해서 데이터 분포 \(\rho_1\)로 가고 싶다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">2</span>
+          <div>
+            <h3>시작 샘플과 데이터 샘플을 뽑는다</h3>
+            <p>\(x_0 \sim \rho_0\), \(x_1 \sim \rho_1\)를 뽑는다. 보통 \(x_0\)는 noise, \(x_1\)는 data sample이다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">3</span>
+          <div>
+            <h3>둘 사이의 중간 샘플을 만든다</h3>
+            <p>가장 쉬운 형태는 \(x_t=(1-t)x_0+tx_1\)이다. \(t=0\)이면 시작, \(t=1\)이면 데이터가 된다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">4</span>
+          <div>
+            <h3>중간에만 노이즈를 섞는다</h3>
+            <p>\(x_t=I(t,x_0,x_1)+\gamma(t)z\)로 만든다. \(\gamma(0)=\gamma(1)=0\)이라 시작과 끝은 망가지지 않는다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">5</span>
+          <div>
+            <h3>시간별 분포 \(\rho(t)\)를 본다</h3>
+            <p>한 개의 선만 보는 게 아니라, 각 시간 \(t\)에서 \(x_t\)들이 만드는 전체 분포를 본다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">6</span>
+          <div>
+            <h3>velocity \(b(t,x)\)를 정의한다</h3>
+            <p>현재 위치 \(x\)에 있을 때 평균적으로 어느 방향으로 움직여야 하는지 나타내는 방향장이다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">7</span>
+          <div>
+            <h3>ODE로 따라가면 flow matching처럼 보인다</h3>
+            <p>\(\frac{dX_t}{dt}=b(t,X_t)\). 같은 시작점이면 항상 같은 결과가 나오는 deterministic한 생성 방식이다.</p>
+          </div>
+        </article>
+        <article class="step-card highlight">
+          <span class="step-number">8</span>
+          <div>
+            <h3>SDE로도 같은 분포 경로를 따라갈 수 있다</h3>
+            <p>ODE에 랜덤 흔들림을 추가한 방식이다. 이때 noise와 score 보정이 같이 들어간다.</p>
+          </div>
+        </article>
+        <article class="step-card highlight">
+          <span class="step-number">9</span>
+          <div>
+            <h3>\(\sqrt{2\epsilon}\,dW_t\)가 추가 noise다</h3>
+            <p>작은 step에서는 \(\sqrt{2\epsilon dt}\,\xi\), \(\xi\sim\mathcal{N}(0,I)\)처럼 Gaussian noise를 더한다고 보면 된다.</p>
+          </div>
+        </article>
+        <article class="step-card highlight">
+          <span class="step-number">10</span>
+          <div>
+            <h3>\(\epsilon\)은 흔들림의 세기다</h3>
+            <p>\(\epsilon=0\)이면 ODE가 되고, \(\epsilon>0\)이면 diffusion처럼 흔들리면서 이동한다.</p>
+          </div>
+        </article>
+        <article class="step-card highlight">
+          <span class="step-number">11</span>
+          <div>
+            <h3>score는 noise 때문에 필요하다</h3>
+            <p>noise가 샘플을 퍼뜨리기 때문에, \(s(t,x)=\nabla_x\log\rho(t,x)\)가 분포의 높은 밀도 쪽으로 보정해준다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">12</span>
+          <div>
+            <h3>score는 denoiser로 배울 수 있다</h3>
+            <p>\(\eta_z(t,x)=\mathbb{E}[z\mid x_t=x]\)를 배우면 \(s(t,x)=-\eta_z(t,x)/\gamma(t)\)로 score를 얻는다.</p>
+          </div>
+        </article>
+        <article class="step-card">
+          <span class="step-number">13</span>
+          <div>
+            <h3>생성할 때는 데이터 샘플이 필요 없다</h3>
+            <p>학습 후에는 \(x_0\sim\rho_0\)만 뽑고, 배운 ODE나 SDE를 \(t=0\)부터 \(t=1\)까지 풀면 된다.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Big Picture</p>
+      <h2>무엇을 하려는 논문인가?</h2>
+      <p>
+        목표는 간단하다. 쉬운 분포에서 샘플을 뽑고, 그 샘플을 데이터 분포처럼 보이게 바꾸는 것이다.
+        예를 들면 Gaussian noise를 image sample로 바꾸는 생성 모델을 생각하면 된다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">먼저 중간 경로를 만든다</p>
+            <p class="summary-desc">노이즈와 데이터 사이의 중간 샘플 \(x_t\)를 직접 정의한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">그 경로를 따라가는 방법을 배운다</p>
+            <p class="summary-desc">ODE로 조용히 따라갈 수도 있고, SDE로 흔들리면서 따라갈 수도 있다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">그래서 flow와 diffusion을 한 그림으로 묶는다</p>
+            <p class="summary-desc">Flow matching은 velocity를 배우는 쪽, diffusion은 score와 noise가 들어가는 쪽으로 볼 수 있다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 1-8</p>
+      <h2>Stochastic interpolant 만들기</h2>
+      <p>
+        시작 분포를 \(\rho_0\), 목표 데이터 분포를 \(\rho_1\)라고 하자.
+        \(x_0 \sim \rho_0\), \(x_1 \sim \rho_1\)를 뽑고, 그 사이의 중간 샘플을 만든다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">가장 중요한 식</p>
+            <p class="formula-desc">
+              \(I(t,x_0,x_1)\)는 시작점과 끝점을 섞는 방법이고, \(\gamma(t)z\)는 중간에만 넣는 노이즈다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+x_t = I(t,x_0,x_1) + \gamma(t)z
+\]</div>
+            <div class="formula-note">
+              쉬운 예시는 \(x_t=(1-t)x_0+tx_1+\gamma(t)z\) 이다.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline" aria-label="Interpolant timeline">
+        <div class="timeline-point">
+          <span class="time">t = 0</span>
+          <strong>\(x_t=x_0\)</strong>
+          <p>시작 분포 \(\rho_0\)</p>
+        </div>
+        <div class="timeline-line"></div>
+        <div class="timeline-point">
+          <span class="time">0 &lt; t &lt; 1</span>
+          <strong>\(x_t\)</strong>
+          <p>중간 분포 \(\rho(t)\)</p>
+        </div>
+        <div class="timeline-line"></div>
+        <div class="timeline-point">
+          <span class="time">t = 1</span>
+          <strong>\(x_t=x_1\)</strong>
+          <p>데이터 분포 \(\rho_1\)</p>
+        </div>
+      </div>
+      <p>
+        여기서 중요한 건 한 샘플의 경로만 보는 것이 아니라, 각 시간 \(t\)에서 \(x_t\)들이 만드는 전체 분포
+        \(\rho(t)\)를 보는 것이다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 9</p>
+      <h2>ODE와 SDE는 무엇이 다른가?</h2>
+      <p>
+        이제 이미 만들어진 중간 분포 경로 \(\rho_0 \rightarrow \rho(t) \rightarrow \rho_1\)를
+        실제 샘플이 어떻게 따라갈지 정해야 한다.
+      </p>
+      <div class="compare-grid">
+        <article class="compare-card">
+          <p class="compare-label">ODE</p>
+          <h3>정해진 방향으로만 이동</h3>
+          <div class="formula small">\[
+\frac{dX_t}{dt}=b(t,X_t)
+\]</div>
+          <p>
+            현재 위치가 정해지면 다음 움직임도 정해진다. 같은 시작점이면 항상 같은 결과가 나온다.
+          </p>
+        </article>
+        <article class="compare-card">
+          <p class="compare-label">SDE</p>
+          <h3>방향에 랜덤 흔들림을 추가</h3>
+          <div class="formula small">\[
+dX_t = [b(t,X_t)+\epsilon s(t,X_t)]dt+\sqrt{2\epsilon}\,dW_t
+\]</div>
+          <p>
+            기본 방향으로 움직이면서 매 순간 작은 Gaussian noise가 들어간다. 같은 시작점이어도 결과가 달라질 수 있다.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Noise Term</p>
+      <h2>\(\sqrt{2\epsilon}\,dW_t\)는 SDE에 추가되는 노이즈다</h2>
+      <p>
+        \(dW_t\)는 Brownian motion의 작은 변화량이다. 실제 계산에서는 작은 step \(dt\)마다
+        Gaussian noise를 새로 뽑아서 더한다고 보면 된다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">한 step으로 쓰면</p>
+            <p class="formula-desc">
+              SDE를 푼다는 것은 보통 이 update를 \(t=0\)부터 \(t=1\)까지 반복한다는 뜻이다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+X_{t+dt}
+= X_t
++ [b(t,X_t)+\epsilon s(t,X_t)]dt
++ \sqrt{2\epsilon dt}\,\xi,
+\qquad \xi \sim \mathcal{N}(0,I)
+\]</div>
+          </div>
+        </div>
+      </div>
+      <div class="summary-list compact">
+        <div class="summary-item">
+          <div class="summary-mark">0</div>
+          <div>
+            <p class="summary-title">\(\epsilon=0\)</p>
+            <p class="summary-desc">노이즈가 사라져서 ODE처럼 움직인다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">+</div>
+          <div>
+            <p class="summary-title">\(\epsilon>0\)</p>
+            <p class="summary-desc">노이즈가 들어가고, 값이 클수록 더 많이 흔들리면서 움직인다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Score</p>
+      <h2>score는 왜 갑자기 나오는가?</h2>
+      <p>
+        SDE에서 노이즈를 넣으면 샘플들이 사방으로 퍼진다. 그러면 우리가 설계한 중간 분포 \(\rho(t)\)를
+        벗어날 수 있다. 이 퍼짐을 보정하기 위해 score가 들어간다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">score의 정의</p>
+            <p class="formula-desc">
+              score는 현재 위치에서 분포의 밀도가 더 높은 쪽을 알려주는 방향이다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+s(t,x)=\nabla_x \log \rho(t,x)
+\]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">SDE 안에서의 역할</p>
+            <p class="formula-desc">
+              noise가 샘플을 퍼뜨리고, \(\epsilon s(t,X_t)\)가 분포 모양을 다시 맞추는 방향으로 보정한다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+\underbrace{b(t,X_t)}_{\text{기본 이동}}
++
+\underbrace{\epsilon s(t,X_t)}_{\text{score 보정}}
++
+\underbrace{\sqrt{2\epsilon}\,dW_t}_{\text{랜덤 흔들림}}
+\]</div>
+          </div>
+        </div>
+      </div>
+      <div class="callout">
+        <p class="callout-title">직관</p>
+        <p>
+          score는 “지금 위치에서 더 그럴듯한 곳은 어느 방향인가?”를 알려준다.
+          Gaussian \(\mathcal{N}(0,1)\)에서는 score가 \(-x\)라서, 바깥으로 나간 샘플을 중심 쪽으로 당긴다.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Denoiser</p>
+      <h2>score는 denoiser로 배울 수 있다</h2>
+      <p>
+        Stochastic interpolant는 중간 샘플을 만들 때 \(\gamma(t)z\)라는 노이즈를 섞었다.
+        그래서 현재 \(x_t\)를 보고 “어떤 \(z\)가 섞였을까?”를 예측하는 denoiser를 학습할 수 있다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">denoiser</p>
+            <p class="formula-desc">현재 중간 샘플 \(x\) 안에 들어간 노이즈 \(z\)의 평균적 추정값이다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+\eta_z(t,x)=\mathbb{E}[z\mid x_t=x]
+\]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">denoiser와 score의 연결</p>
+            <p class="formula-desc">노이즈 예측을 잘하면 score도 얻을 수 있다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+s(t,x)=-\frac{\eta_z(t,x)}{\gamma(t)}
+\]</div>
+          </div>
+        </div>
+      </div>
+      <p>
+        그래서 diffusion model의 noise prediction과 연결된다. Noisy sample을 보고 들어간 noise를 예측하면,
+        그 정보가 score가 되고, score가 SDE sampling을 가능하게 한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Takeaway</p>
+      <h2>한 장으로 정리</h2>
+      <div class="flow-board" aria-label="Stochastic interpolants summary">
+        <div class="flow-box">중간 샘플 설계<br /><strong>\(x_t=I(t,x_0,x_1)+\gamma(t)z\)</strong></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-box">시간별 분포 경로<br /><strong>\(\rho_0 \rightarrow \rho(t) \rightarrow \rho_1\)</strong></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-split">
+          <div class="flow-box">ODE<br /><strong>velocity \(b\)</strong></div>
+          <div class="flow-box">SDE<br /><strong>velocity \(b\) + score \(s\) + noise</strong></div>
+        </div>
+      </div>
+      <p>
+        결론적으로 stochastic interpolants는 diffusion과 flow matching을 완전히 다른 방법으로 보지 않는다.
+        같은 중간 분포 경로를 ODE로 따라가면 flow 쪽이고, SDE로 따라가면 diffusion 쪽이라고 볼 수 있다.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AdaptDiffuser</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/adaptdiffuser.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to RL notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">AdaptDiffuser 정리</div>
+      <h1>AdaptDiffuser</h1>
+      <p class="subtitle">
+        Diffusion model을 offline RL의 trajectory planner로 쓰되, reward-guided synthetic data를 만들어 스스로 planner를 개선하는 방법.
+      </p>
+      <div class="pipeline" aria-label="AdaptDiffuser pipeline">
+        <div class="pipeline-step">Offline trajectories</div>
+        <div class="pipeline-step">Diffusion planner</div>
+        <div class="pipeline-step">Reward guidance</div>
+        <div class="pipeline-step">Discriminator filter</div>
+        <div class="pipeline-step">Fine-tuning</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Position</p>
+      <h2>이 논문은 어디에 놓이는가?</h2>
+      <p>
+        AdaptDiffuser는 robot manipulation 논문이라기보다, offline reinforcement learning과 diffusion-based planning 사이에 있는 논문이다.
+        KUKA pick-and-place 실험이 들어가지만 핵심 질문은 “offline data가 제한적일 때 diffusion planner를 어떻게 더 좋은 planner로 만들 수 있는가?”에 가깝다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Offline RL as sequence modeling</p>
+            <p class="summary-desc">Policy나 value function을 직접 학습하기보다, state-action trajectory의 분포를 sequence model로 학습하고 planning에 사용한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Diffusion planner</p>
+            <p class="summary-desc">Diffuser처럼 trajectory를 denoising process로 생성하고, goal 또는 reward 조건을 sampling 과정에 넣어 원하는 행동을 만든다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Self-evolving planner</p>
+            <p class="summary-desc">생성한 trajectory 중 좋은 것만 골라 다시 diffusion model을 fine-tune하면서 planner 자체를 개선한다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Motivation</p>
+      <h2>왜 AdaptDiffuser가 필요한가?</h2>
+      <p>
+        기존 Diffuser 계열은 offline dataset으로 trajectory distribution을 학습한 뒤, inference 때 reward나 constraint guidance를 걸어 planning한다.
+        하지만 offline data의 다양성이 부족하면 model이 본 적 없는 task나 goal에 잘 일반화하기 어렵다.
+      </p>
+      <p>
+        AdaptDiffuser의 출발점은 간단하다. Diffusion planner가 reward guidance를 통해 기존 데이터와 다른 trajectory를 만들어낼 수 있다면,
+        그 중 성공적인 trajectory를 다시 학습 데이터로 사용해서 planner를 더 강하게 만들 수 있지 않을까?
+      </p>
+      <div class="formula-stack" aria-label="Problem and idea">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Planning objective</p>
+            <p class="formula-desc">Trajectory \(\tau\)는 state-action sequence이고, planner는 return이 큰 action sequence를 찾고 싶다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+a^*_{0:T}
+= \arg\max_{a_{0:T}}
+\sum_{t=0}^{T}\gamma^t R(s_t,a_t)
+\]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Reward-guided denoising</p>
+            <p class="formula-desc">Sampling 중 denoising mean을 reward가 커지는 방향으로 이동시켜 task에 맞는 trajectory를 만든다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+p_\theta(\tau^{i-1}\mid \tau^i, O_{1:T})
+\approx
+\mathcal{N}(\tau^{i-1};\mu_\theta+\alpha\Sigma g,\Sigma)
+\]</div>
+            <div class="formula-note">여기서 \(g=\nabla_\tau J(\mu_\theta)\)는 reward objective의 gradient로 볼 수 있다.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Method</p>
+      <h2>AdaptDiffuser의 핵심 루프</h2>
+      <p>
+        방법은 “generate, filter, fine-tune”의 반복으로 보면 가장 쉽다. 먼저 기존 offline data로 Diffuser를 학습하고,
+        다양한 goal이나 reward function으로 synthetic trajectory를 만든다. 이후 discriminator 또는 reward criterion으로 품질이 높은 trajectory만 남긴다.
+      </p>
+      <div class="loop-grid">
+        <div class="loop-card">
+          <p class="loop-index">01</p>
+          <p class="loop-title">Generate</p>
+          <p class="loop-desc">Reward gradient를 denoising process에 넣어 seen task와 unseen task 모두에 대한 후보 trajectory를 생성한다.</p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">02</p>
+          <p class="loop-title">Select</p>
+          <p class="loop-desc">성공률, reward, trajectory length 같은 기준으로 high-quality synthetic data만 data pool에 넣는다.</p>
+        </div>
+        <div class="loop-card">
+          <p class="loop-index">03</p>
+          <p class="loop-title">Adapt</p>
+          <p class="loop-desc">선택된 synthetic data로 diffusion model을 fine-tune해서 다음 iteration의 planner를 개선한다.</p>
+        </div>
+      </div>
+      <p>
+        이 때문에 AdaptDiffuser는 단순히 inference-time guidance를 쓰는 planner가 아니라, 생성한 경험을 다시 학습에 넣는 adaptive planner로 볼 수 있다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Experiments</p>
+      <h2>어떤 task에서 검증했나?</h2>
+      <p>
+        논문은 D4RL의 Maze2D와 MuJoCo에서 seen-task 성능을 확인하고, Maze2D gold coin picking과 KUKA pick-and-place로 unseen-task adaptation을 본다.
+        특히 KUKA 실험은 manipulation 자체가 주제라기보다, 새 task에서 추가 expert data 없이 적응할 수 있는지를 보여주는 사례다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">M</div>
+          <div>
+            <p class="summary-title">Maze2D</p>
+            <p class="summary-desc">Navigation benchmark와 gold coin picking 변형을 통해 goal-conditioned planning과 unseen objective 적응을 평가한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">L</div>
+          <div>
+            <p class="summary-title">MuJoCo locomotion</p>
+            <p class="summary-desc">HalfCheetah, Hopper, Walker2d 계열에서 offline RL benchmark 성능을 Diffuser, IQL, CQL 등과 비교한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">K</div>
+          <div>
+            <p class="summary-title">KUKA pick-and-place</p>
+            <p class="summary-desc">기존 stacking data를 바탕으로 새로운 pick-and-place task에 synthetic data와 filtering으로 적응하는지를 본다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Takeaway</p>
+      <h2>한 문장으로 정리하면</h2>
+      <p>
+        AdaptDiffuser는 diffusion planner가 reward guidance로 만든 “좋은 꿈”을 다시 학습 데이터로 사용해서,
+        offline RL planner의 성능과 unseen task generalization을 함께 끌어올리는 방법이다.
+      </p>
+    </section>
+  </main>
+  <script defer src="assets/js/adaptdiffuser.js"></script>
+</body>
+</html>

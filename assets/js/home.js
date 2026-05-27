@@ -13,3 +13,4 @@ const setupTopicToggle = (toggleSelector, panelSelector) => {
 
 setupTopicToggle("#rl-toggle", "#rl-panel");
 setupTopicToggle("#humanoid-toggle", "#humanoid-panel");
+setupTopicToggle("#diffusion-toggle", "#diffusion-panel");
