@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepMimic</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to Humanoid notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">DeepMimic 정리</div>
+      <h1>DeepMimic</h1>
+      <p class="subtitle">Example-Guided Deep Reinforcement Learning of Physics-Based Character Skills.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Introduction</p>
+      <h2>어떤 문제에서 출발하는가?</h2>
+      <p>
+        DeepMimic은 motion capture나 keyframed animation으로 주어진 reference motion을 물리 시뮬레이션
+        안의 character가 직접 수행하게 만드는 문제를 다룬다. 기존 deep RL은 걷기나 달리기 같은 행동을
+        만들 수는 있었지만, 움직임이 어색하거나 자세가 부자연스러운 경우가 많았다.
+      </p>
+      <p>
+        논문의 핵심 아이디어는 간단하다. 사람이 자연스러움을 reward로 하나하나 설계하는 대신, reference
+        motion과 비슷하게 움직이면 보상을 주고, 그 위에 필요한 task objective를 더한다. 이렇게 하면 motion
+        clip이 style과 desired behavior를 제공하고, RL은 physics 안에서 그 motion을 안정적으로 실행하는
+        controller를 학습한다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Data-driven physics control</p>
+            <p class="summary-desc">
+              Reference motion은 kinematic guide 역할을 하고, policy는 torque를 직접 내는 대신 joint PD target을
+              출력해 물리적으로 가능한 motion을 만든다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Highly dynamic skills</p>
+            <p class="summary-desc">
+              Backflip, cartwheel, spinkick처럼 flight phase와 contact 변화가 큰 동작도 학습할 수 있음을 보인다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Task-aware imitation</p>
+            <p class="summary-desc">
+              Motion imitation reward에 task reward를 더해, 정해진 방향으로 걷거나 target을 맞히는 식의 goal-directed
+              behavior도 함께 학습한다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Method</p>
+      <h2>Policy는 무엇을 보고 무엇을 출력하는가?</h2>
+      <p>
+        Policy는 character의 body state와 reference motion의 phase를 observation으로 받는다. Phase는 현재
+        reference clip의 어느 시점에 해당하는지 알려주기 때문에, policy가 시간에 따라 달라지는 target pose를
+        따라갈 수 있게 한다.
+      </p>
+      <p>
+        Action은 각 joint의 target orientation이다. 이 target은 low-level PD controller로 전달되고, PD controller가
+        실제 torque를 만든다. 그래서 policy는 raw torque보다 조금 더 안정적인 action space에서 학습한다.
+      </p>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Policy objective</p>
+            <p class="formula-desc">
+              PPO로 누적 reward를 최대화하는 policy를 학습한다. Motion imitation만 있는 경우도 있고,
+              task objective가 함께 있는 경우도 있다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+\max_\theta\ \mathbb{E}_{\pi_\theta}\left[\sum_{t=0}^{T}\gamma^t r_t\right]
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Reward composition</p>
+            <p class="formula-desc">
+              전체 reward는 imitation objective와 task objective의 weighted sum으로 구성된다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+r_t=\omega_I r_t^I+\omega_G r_t^G
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula">\[
+r_t^I=w_p r_t^p+w_v r_t^v+w_e r_t^e+w_c r_t^c
+\]</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Training Details</p>
+      <h2>고난도 motion imitation을 가능하게 한 장치</h2>
+      <p>
+        DeepMimic에서 중요한 포인트는 알고리즘 자체만이 아니라 episode를 어떻게 구성하느냐다. 논문은
+        reference state initialization과 early termination이 dynamic skill 학습에 특히 중요하다고 분석한다.
+      </p>
+      <p>
+        특히 RSI는 DeepMimic의 핵심에 가깝다. 일반적인 RL처럼 episode를 항상 reference motion의 첫 프레임에서
+        시작하면, policy는 동작을 앞에서부터 순서대로 배워야 한다. 걷기처럼 비교적 안정적인 motion에서는 이게
+        어느 정도 가능하지만, backflip처럼 중간에 jump, rotation, landing이 강하게 연결된 motion에서는 큰 문제가 된다.
+      </p>
+      <p>
+        예를 들어 backflip을 생각하면, policy가 좋은 landing을 배우려면 먼저 공중에서 제대로 회전한 상태까지
+        도달해야 한다. 그런데 좋은 takeoff를 아직 모르면 그런 상태를 거의 방문하지 못하고, 방문하지 못한 상태의
+        가치를 배울 수도 없다. RSI는 이 병목을 끊는다. reference motion의 임의 시점에서 episode를 시작하게 해서,
+        agent가 landing, flight, takeoff 근처의 좋은 state들을 초반부터 직접 경험하게 만든다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Reference state initialization</p>
+            <p class="summary-desc">
+              Episode를 항상 clip의 처음에서 시작하지 않고, reference motion에서 time index를 샘플링한 뒤
+              그 pose와 velocity로 character를 초기화한다. Reference motion이 reward뿐 아니라 initial state
+              distribution으로도 쓰이는 셈이다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Early termination</p>
+            <p class="summary-desc">
+              Torso나 head가 바닥에 닿는 등 실패 상태가 되면 episode를 종료하고 남은 reward를 0으로 둔다.
+              넘어진 뒤 누워서 motion을 흉내 내는 local optimum을 줄이는 효과가 있다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Exploration through imitation data</p>
+            <p class="summary-desc">
+              Reference motion은 reward뿐 아니라 initial state distribution으로도 사용된다. 즉 demonstration이
+              agent에게 좋은 state가 어디 있는지 알려주는 추가 채널이 된다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Fixed initial state의 문제</p>
+            <p class="formula-desc">
+              항상 첫 state에서 시작하면 rollout은 early phase에 묶인다. 뒤쪽 phase의 좋은 state는 policy가
+              스스로 거기까지 도달해야만 학습 데이터에 들어온다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+s_0 = \hat{s}_0
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Reference state initialization</p>
+            <p class="formula-desc">
+              RSI는 reference motion의 전체 시간축에서 초기 state를 샘플링한다. 그래서 policy가 아직 motion을
+              처음부터 끝까지 수행하지 못해도, 모든 phase의 state와 reward signal을 학습할 수 있다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+t_0 \sim \mathrm{Uniform}(0,T),\qquad s_0 = \hat{s}_{t_0}
+\]</div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        논문의 ablation에서도 이 차이가 크게 드러난다. RSI 없이 학습하면 return은 비슷해 보여도 실제 motion을
+        보면 backflip을 완전히 돌지 못하고 작은 backward hop처럼 변하는 경우가 있다. 즉 RSI는 단순히 학습을
+        빠르게 하는 장치가 아니라, policy가 dynamic skill의 후반부와 contact-rich phase까지 제대로 배우게 만드는
+        curriculum 역할을 한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Multi-Skill Integration</p>
+      <h2>여러 motion clip을 어떻게 하나의 skill system으로 묶는가?</h2>
+      <p>
+        앞부분이 하나의 reference clip을 물리적으로 잘 따라 하는 방법이라면, Multi-Skill Integration은
+        여러 clip이나 여러 policy를 조합해 더 복잡한 behavior를 만드는 방법을 다룬다. DeepMimic은 여기서
+        하나의 정답을 제시하기보다, motion들의 성격에 따라 쓸 수 있는 세 가지 통합 방식을 비교한다.
+      </p>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Multi-clip reward</p>
+            <p class="summary-desc">
+              여러 reference clip에 대한 imitation reward를 계산한 뒤, 그중 가장 큰 reward를 사용한다.
+              Forward walk와 turning clip처럼 같은 motion family 안에서는 policy가 상황에 맞는 clip을
+              암묵적으로 선택하게 된다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Skill selector</p>
+            <p class="summary-desc">
+              Policy에 one-hot goal을 넣어 사용자가 현재 수행할 skill을 지정한다. 예를 들어 frontflip,
+              backflip, left sideflip, right sideflip을 하나의 policy가 수행하되, goal vector가 어떤 clip을
+              따라갈지 알려준다.
+            </p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Composite policy</p>
+            <p class="summary-desc">
+              Skill마다 policy를 따로 학습하고, runtime에는 각 policy의 value function을 비교해 지금 상태에서
+              가장 적합한 skill을 선택한다. 서로 다른 종류의 motion을 섞을 때는 이 방식이 더 안정적이다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Multi-clip imitation reward</p>
+            <p class="formula-desc">
+              여러 clip 중 현재 state와 가장 잘 맞는 clip이 reward를 결정한다. 이 덕분에 별도의 kinematic planner 없이
+              policy가 상황에 맞는 walking/turning clip을 선택할 수 있다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+r_t^I=\max_{j=1,\dots,k} r_t^j
+\]</div>
+          </div>
+        </div>
+
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Value-based policy composition</p>
+            <p class="formula-desc">
+              Composite policy는 각 sub-policy의 value를 softmax처럼 바꿔 선택 확률을 만든다. Value가 높다는 것은
+              현재 state에서 그 skill을 실행했을 때 성공 가능성이 높다는 뜻이다.
+            </p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+\Pi(a\mid s)=\sum_{i=1}^{k}p^i(s)\pi^i(a\mid s)
+\]</div>
+            <div class="formula-divider"></div>
+            <div class="formula">\[
+p^i(s)=
+\frac{\exp(V^i(s)/T)}
+{\sum_{j=1}^{k}\exp(V^j(s)/T)}
+\]</div>
+          </div>
+        </div>
+      </div>
+
+      <p>
+        이 파트가 중요한 이유는 DeepMimic이 단순한 clip follower를 넘어서 skill library처럼 쓰일 가능성을
+        보여주기 때문이다. 다만 한계도 분명하다. Multi-clip reward는 비슷한 walking/turning 계열에서는 잘 되지만
+        매우 다른 motion을 한 policy에 섞으면 일부 clip만 배우기 쉽다. Skill selector는 사용자가 직접 skill을
+        지정해야 하고, composite policy는 value function으로 고르는 방식이라 아직 generative planning은 아니다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Results</p>
+      <h2>무엇을 보여줬는가?</h2>
+      <p>
+        DeepMimic은 humanoid, Atlas, T-Rex, dragon 등 다양한 morphology에서 motion imitation이 가능함을
+        보여준다. 특히 cartwheel, backflip, spin kick 같은 동작을 물리적으로 시뮬레이션하면서도 reference와
+        매우 비슷한 motion quality를 얻는다.
+      </p>
+      <p>
+        또 imitation objective만으로 끝나지 않고, task objective를 함께 넣으면 interactive setting에서도 동작을
+        조정할 수 있다. 예를 들어 target 방향으로 걷거나 공을 목표 지점에 던지는 식으로 reference style과
+        task success를 동시에 만족한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Limitations</p>
+      <h2>한계와 후속 연구로 이어지는 지점</h2>
+      <p>
+        DeepMimic의 policy는 reference motion과 동기화된 phase variable에 의존한다. 그래서 timing을 자유롭게
+        늘리거나 줄이는 perturbation recovery에는 한계가 있다. 또한 motion별 policy 학습에 가깝고, 큰 motion
+        library를 하나의 범용 controller로 다루는 문제는 아직 열려 있다.
+      </p>
+      <p>
+        이런 점 때문에 DeepMimic은 BeyondMimic 같은 후속 연구를 이해하는 좋은 기준점이 된다. DeepMimic이
+        physics-based imitation의 강력한 출발점을 만들었다면, BeyondMimic은 이를 실제 humanoid와 scalable
+        motion tracking, 그리고 diffusion 기반 skill composition으로 확장한다.
+      </p>
+    </section>
+
+  </main>
+  <script defer src="assets/js/deep-mimic.js"></script>
+</body>
+</html>
