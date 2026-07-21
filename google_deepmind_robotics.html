@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google DeepMind Robotics | Learning Log</title>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to VLA notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">VLA Research Lineage</div>
+      <h1>Google DeepMind Robotics</h1>
+      <p class="subtitle">From scalable robotic control to Gemini-powered physical agents.</p>
+      <p>
+        Google DeepMind의 로보틱스 연구는 RT-1의 대규모 실제 로봇 제어에서 출발해, PaLM-E와 RT-2를 거쳐
+        Gemini Robotics의 embodied reasoning과 행동 생성으로 확장된다. 이 페이지는 그 계보를 따라 읽기 위한 허브다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Papers</p>
+      <h2>각 논문이 연 전환점</h2>
+      <div class="summary-list">
+        <a class="summary-item paper-link" href="rt1.html">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">RT-1 · 대규모 실제 로봇 제어의 문을 연 Transformer</p>
+            <p class="summary-desc">다양한 실제 로봇 시연을 하나의 Transformer policy에 모아, 규모와 데이터 다양성이 일반화를 높일 수 있음을 보인다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">PaLM-E · 언어 모델에 물리 세계를 연결한 Embodied VLM</p>
+            <p class="summary-desc">언어·시각·로봇 상태를 대형 multimodal language model에 결합해 물리 세계를 이해하는 기반을 제시한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">RT-2 · 웹 지식을 로봇 행동으로 전이한 VLA</p>
+            <p class="summary-desc">VLM의 웹 지식을 로봇 행동으로 전이한다. 이 계보에서 VLA라는 개념을 가장 분명하게 드러낸 논문이다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">4</div>
+          <div>
+            <p class="summary-title">Open X-Embodiment / RT-X · 로봇 몸체의 경계를 넘은 학습</p>
+            <p class="summary-desc">여러 기관과 로봇 형태의 데이터를 묶어, embodiment를 넘어서는 학습을 시도한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">5</div>
+          <div>
+            <p class="summary-title">Gemini Robotics · Gemini를 물리 세계로 확장한 로봇 모델</p>
+            <p class="summary-desc">Gemini의 multimodal reasoning을 정교한 로봇 조작으로 연결한다. Gemini Robotics-ER은 고수준 embodied reasoning 분기다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Study Map</p>
+      <h2>비교할 때 볼 축</h2>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">A</div>
+          <div>
+            <p class="summary-title">Data</p>
+            <p class="summary-desc">단일 플랫폼의 실제 시연에서 여러 로봇·웹·합성 데이터로 어떻게 넓어지는지 본다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">B</div>
+          <div>
+            <p class="summary-title">Model</p>
+            <p class="summary-desc">전용 control Transformer에서 VLM/VLA, 그리고 Gemini 기반 모델로 어떻게 바뀌는지 본다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">C</div>
+          <div>
+            <p class="summary-title">Generalization</p>
+            <p class="summary-desc">새 물체·작업 조합의 일반화에서, 웹 지식과 여러 embodiment를 통한 일반화로 확장되는 과정을 비교한다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
