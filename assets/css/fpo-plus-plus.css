@@ -173,6 +173,35 @@ p {
   margin-top: 24px;
 }
 
+.paper-figure {
+  margin: 24px 0 0;
+  padding: 12px;
+  border: 1px solid #d6d6d0;
+  border-radius: 8px;
+  background: #fbfbfa;
+}
+
+.paper-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.paper-figure figcaption {
+  margin: 12px 4px 2px;
+  color: #626262;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.paper-figure figcaption a {
+  color: #111111;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .summary-item {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -207,6 +236,36 @@ p {
   margin: 4px 0 0;
   color: #565656;
   font-size: 15px;
+}
+
+.paper-link {
+  grid-template-columns: auto 1fr auto;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.paper-link:hover {
+  border-color: #111111;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.paper-link:focus-visible {
+  outline: 3px solid #111111;
+  outline-offset: 3px;
+}
+
+.paper-link-arrow {
+  align-self: center;
+  color: #111111;
+  font-size: 14px;
+  font-weight: 850;
+  white-space: nowrap;
+  transition: transform 160ms ease;
+}
+
+.paper-link:hover .paper-link-arrow {
+  transform: translateX(5px);
 }
 
 .formula {
@@ -458,6 +517,15 @@ p {
 
   .ratio-columns {
     grid-template-columns: 1fr;
+  }
+
+  .paper-link {
+    grid-template-columns: auto 1fr;
+  }
+
+  .paper-link-arrow {
+    grid-column: 2;
+    justify-self: start;
   }
 
 }

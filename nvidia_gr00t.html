@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NVIDIA GR00T | Learning Log</title>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to VLA notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">VLA Research Lineage</div>
+      <h1>NVIDIA GR00T</h1>
+      <p class="subtitle">Open foundation models and a full-stack workflow for generalist humanoid robots.</p>
+      <p>
+        NVIDIA GR00T는 휴머노이드 로봇을 위한 VLA 모델 계열이자, 데이터를 모으고 합성하고 시뮬레이션에서
+        검증해 실제 로봇에 배포하는 Physical AI 개발 스택이다. 모델의 범용성뿐 아니라, 그 모델을 학습시키는
+        데이터와 도구의 확장을 함께 다룬다는 점이 특징이다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Models & Platform</p>
+      <h2>GR00T가 만든 전환점</h2>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Project GR00T · 휴머노이드 Physical AI 개발 스택</p>
+            <p class="summary-desc">범용 휴머노이드 foundation model을 향한 연구 이니셔티브다. GR00T-Gen, Mimic, Dexterity, Mobility, Control 같은 workflow로 데이터·제어·시뮬레이션의 기반을 마련한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">GR00T N1 · 휴머노이드를 위한 Open Dual-System VLA</p>
+            <p class="summary-desc">vision-language System 2가 환경과 명령을 해석하고, diffusion transformer System 1이 실시간 motor action을 생성한다. 인간 egocentric video, 실제·합성 robot trajectory를 함께 학습한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">GR00T N1.5 · 더 나은 언어 이행과 일반화</p>
+            <p class="summary-desc">N1의 architecture·data·modeling을 개선한 세대다. 적은 수의 실제 teleoperation episode로 새로운 작업과 로봇에 post-training하는 흐름을 강화한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">4</div>
+          <div>
+            <p class="summary-title">GR00T N1.6 · Multi-embodiment loco-manipulation</p>
+            <p class="summary-desc">더 큰 DiT와 Cosmos 계열 VLM 변형을 사용해, 양팔 조작뿐 아니라 서로 다른 휴머노이드 플랫폼에서 loco-manipulation을 확장한다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Core Ideas</p>
+      <h2>GR00T를 읽는 세 가지 축</h2>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">A</div>
+          <div>
+            <p class="summary-title">Reasoning과 motor control의 분리</p>
+            <p class="summary-desc">N1의 dual-system 설계는 시각·언어 이해와 빠르고 유연한 행동 생성을 각각의 전문 모듈에 맡긴다. 이 구분이 GR00T의 모델 구조를 이해하는 핵심이다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">B</div>
+          <div>
+            <p class="summary-title">휴머노이드 데이터 부족을 푸는 방법</p>
+            <p class="summary-desc">실제 로봇 데이터만으로는 scale이 부족하므로, 인간 영상·teleoperation·simulation·synthetic trajectory를 함께 써서 학습 데이터를 넓힌다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">C</div>
+          <div>
+            <p class="summary-title">Model만이 아닌 개발 파이프라인</p>
+            <p class="summary-desc">Isaac Sim/Lab, GR00T-Mimic, synthetic data generation은 VLA를 실제 휴머노이드에 적용하기 위한 반복 가능한 data-to-deployment loop를 구성한다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Direction</p>
+      <h2>NVIDIA가 추구하는 길: 휴머노이드를 위한 Physical AI Factory</h2>
+      <p>
+        GR00T의 목표는 특정 휴머노이드 한 대를 위한 policy를 만드는 데 그치지 않는다. 다양한 제조사의 몸체와
+        작업에 적응하는 범용 모델을, simulation·synthetic data·teleoperation·실제 배포가 이어지는 개발 공정 속에서
+        계속 개선하는 것이다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">Human-centric embodiment</p>
+            <p class="summary-desc">사람이 만든 공간과 도구를 다루기 쉬운 휴머노이드 form factor를 범용 로봇의 중요한 플랫폼으로 본다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">Open model, adaptable deployment</p>
+            <p class="summary-desc">GR00T N1 계열의 open-weight 접근과 post-training workflow는 각 로봇 제작자가 자신의 embodiment와 작업에 모델을 맞추도록 돕는다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">Scale through simulation and generated data</p>
+            <p class="summary-desc">현실에서 느린 demonstration 수집을 simulation과 synthetic data로 보완해, 휴머노이드 학습의 병목을 줄이는 것이 장기적인 방향이다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

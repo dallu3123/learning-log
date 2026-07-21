@@ -189,7 +189,8 @@ button.card[aria-expanded="true"] .arrow {
   background: #ffffff;
 }
 
-.topic-link {
+.topic-link,
+.topic-item {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 18px;
@@ -203,10 +204,20 @@ button.card[aria-expanded="true"] .arrow {
   transition: border-color 160ms ease, transform 200ms ease, opacity 240ms ease;
 }
 
-.topic-panel.open .topic-link {
+.topic-panel.open .topic-link,
+.topic-panel.open .topic-item {
   opacity: 1;
   transform: translateY(0);
   transition-delay: 90ms;
+}
+
+.topic-item + .topic-item {
+  margin-top: 12px;
+}
+
+#vla-panel .topic-list {
+  display: grid;
+  gap: 12px;
 }
 
 .topic-link:hover {
