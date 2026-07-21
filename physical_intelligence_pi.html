@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Physical Intelligence π Series | Learning Log</title>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to VLA notes</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">VLA Research Lineage</div>
+      <h1>Physical Intelligence π Series</h1>
+      <p class="subtitle">Generalist robot policies for bringing intelligence into the physical world.</p>
+      <p>
+        Physical Intelligence의 π 계열은 사전학습 VLM의 semantic knowledge와 대규모 로봇 데이터를 결합해,
+        다양한 로봇과 정교한 조작을 수행하는 generalist policy를 만든다. 중심 질문은 단순하다. 하나의 정책이
+        많은 물리 작업을 배우고, 낯선 환경에서도 유용하게 일반화할 수 있는가?
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Papers</p>
+      <h2>각 세대가 연 전환점</h2>
+      <div class="summary-list">
+        <a class="summary-item paper-link" href="pi0.html">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">π0 · VLA에 연속 행동 생성을 더한 Flow Model</p>
+            <p class="summary-desc">사전학습 VLM에 action expert를 추가하고 flow matching으로 continuous action chunk를 생성한다. 여러 로봇과 dexterous task를 하나의 policy로 다루는 출발점이다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <a class="summary-item paper-link" href="pi_fast.html">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">π0-FAST · 빠른 학습을 위한 Action Tokenization</p>
+            <p class="summary-desc">주파수 영역 압축 기반 FAST tokenization으로 autoregressive VLA를 학습한다. π0 수준의 정교한 작업을 더 빠른 학습으로 달성하려는 병렬 분기다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <a class="summary-item paper-link" href="pi05.html">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">π0.5 · 낯선 집에서도 동작하는 Open-World VLA</p>
+            <p class="summary-desc">여러 로봇·웹 데이터·고수준 subtask 예측을 함께 학습해, 학습에서 보지 못한 환경의 긴 정리 작업으로 일반화를 확장한다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <a class="summary-item paper-link" href="pi06.html">
+          <div class="summary-mark">4</div>
+          <div>
+            <p class="summary-title">π0.6 · 더 큰 VLM과 Knowledge Insulation</p>
+            <p class="summary-desc">Gemma 3 기반 VLM, metadata conditioning, FAST와 flow matching의 결합으로 task-specific fine-tuning 없이도 더 강한 out-of-the-box 성능을 목표로 한다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <a class="summary-item paper-link" href="pi06star.html">
+          <div class="summary-mark">5</div>
+          <div>
+            <p class="summary-title">π*0.6 · 경험과 교정으로 배우는 RECAP VLA</p>
+            <p class="summary-desc">π0.6을 advantage-conditioned policy로 확장하고, 실제 로봇 rollout·보상·사람의 교정을 강화학습에 반영한다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+        <a class="summary-item paper-link" href="pi07.html">
+          <div class="summary-mark">6</div>
+          <div>
+            <p class="summary-title">π0.7 · 조합적 일반화와 steerable robot policy</p>
+            <p class="summary-desc">언어뿐 아니라 visual subgoal, 속도·품질 metadata 등 다양한 조건을 사용해, 새 작업 조합과 여러 robot embodiment로의 일반화를 목표로 한다.</p>
+          </div>
+          <span class="paper-link-arrow" aria-hidden="true">Open notes →</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Core Ideas</p>
+      <h2>π 계열을 읽는 세 가지 축</h2>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">A</div>
+          <div>
+            <p class="summary-title">Action generation</p>
+            <p class="summary-desc">π0의 핵심은 언어 token을 단순히 행동으로 치환하는 대신, flow matching으로 고주파 연속 제어를 생성하는 데 있다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">B</div>
+          <div>
+            <p class="summary-title">Pre-training and post-training</p>
+            <p class="summary-desc">넓고 다양한 데이터는 recovery와 일반화의 기반이 되고, 고품질 task-specific data는 매끄럽고 정확한 행동을 위한 post-training에 쓰인다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">C</div>
+          <div>
+            <p class="summary-title">From generality to experience</p>
+            <p class="summary-desc">π0.5 이후의 흐름은 단순히 더 많은 작업을 학습하는 것을 넘어, open-world generalization·memory·real-world RL로 실제 환경의 어려움을 다룬다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Direction</p>
+      <h2>PI가 추구하는 길: 어떤 로봇이든, 어떤 작업이든</h2>
+      <p>
+        π 시리즈의 목표는 특정 벤치마크에서 가장 높은 점수를 얻는 단일 작업 policy가 아니다. 사람처럼 다양한
+        물리 경험을 바탕으로 새 로봇, 새 환경, 새 지시를 빠르게 이해하고 행동하는 범용 physical intelligence를
+        만드는 데 있다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">하나의 policy, 많은 로봇과 작업</p>
+            <p class="summary-desc">single-arm, bimanual, mobile manipulator처럼 서로 다른 embodiment와 다양한 manipulation task를 하나의 사전학습 policy에 축적한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">웹의 의미 지식과 물리 경험의 결합</p>
+            <p class="summary-desc">VLM이 가진 물체·언어·상황에 대한 넓은 이해를 로봇의 실제 조작 데이터와 결합해, 단순한 perception을 행동으로 이어지게 한다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">실험실 밖의 일반화</p>
+            <p class="summary-desc">π0.5 이후에는 새로운 집, 낯선 물체, 긴 작업 순서처럼 미리 완벽하게 정의하기 어려운 open-world 환경을 핵심 시험대로 둔다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">4</div>
+          <div>
+            <p class="summary-title">경험을 통해 계속 나아가는 모델</p>
+            <p class="summary-desc">π*0.6과 π0.7의 방향은 실제 배치 중 얻은 경험, 사람의 교정, RL을 다시 학습에 반영해 범용성과 정교함을 함께 높이는 것이다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

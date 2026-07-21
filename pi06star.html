@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <title>π*0.6 | Learning Log</title>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="physical_intelligence_pi.html">← Back to Physical Intelligence π Series</a>
+    </nav>
+
+    <section class="hero">
+      <div class="badge">Physical Intelligence · 2025 · RECAP</div>
+      <h1>π*0.6</h1>
+      <p class="subtitle">A VLA that learns from real-world experience, rewards, and corrections.</p>
+      <p>π*0.6은 π0.6을 실제 로봇 강화학습에 맞게 확장한 모델이다. 사람이 보여 준 시연만 모방하는 데서 멈추지 않고, 배포 중 얻은 성공·실패 경험과 사람의 교정을 다시 학습에 넣어 robustness와 throughput을 높인다.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Problem</p>
+      <h2>시연 정책은 사람의 숙련도를 넘기 어렵다</h2>
+      <p>imitation learning은 시연 데이터의 품질과 분포에 묶인다. 로봇이 실제로 겪는 실패, 느린 동작, 예외 상황을 학습하지 않으면 긴 작업에서 오류가 누적된다. π*0.6은 실환경 경험을 이용해 이 간극을 줄이려 한다.</p>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">Autonomous rollouts</p><p class="summary-desc">현재 policy를 실제 task에 배포해 성공과 실패가 섞인 trajectory를 수집한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">Human corrections</p><p class="summary-desc">로봇이 큰 실수를 할 때 사람의 teleoperation intervention을 받아, 단순 실패 label보다 풍부한 수정 행동을 얻는다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">Reward feedback</p><p class="summary-desc">각 episode의 결과로 sparse reward를 부여해, 어떤 행동이 task completion을 더 가깝게 만드는지 학습한다.</p></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">RECAP</p>
+      <h2>경험과 교정을 advantage-conditioned policy로 바꾼다</h2>
+      <p>RECAP은 <em>RL with Experience and Corrections via Advantage-conditioned Policies</em>의 약자다. 핵심은 value function이 추정한 advantage를 policy의 조건으로 넣어, 더 좋은 행동을 선택하도록 VLA를 학습하는 것이다.</p>
+      <figure class="paper-figure">
+        <img src="assets/images/pi06star-recap.png" alt="다양한 robot data와 multimodal web data를 입력으로 받는 π스타 0.6 VLA, value function, rollout, intervention과 labeling이 연결된 RECAP 학습 구조" />
+        <figcaption>
+          논문 Figure 1. RECAP은 VLA의 rollout과 사람의 intervention을 모으고, value function이 계산한 advantage로 policy를 반복 개선한다.
+          <a href="https://arxiv.org/abs/2511.14759" target="_blank" rel="noreferrer">Source: Physical Intelligence, 2025 ↗</a>
+        </figcaption>
+      </figure>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">Collect</p><p class="summary-desc">자율 실행 결과, task outcome reward, 필요할 때의 사람 intervention을 모은다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">Evaluate</p><p class="summary-desc">언어 조건부 distributional value function이 관측과 task prompt에서 남은 성공 가능성/진행도를 평가한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">Improve</p><p class="summary-desc">value estimate에서 얻은 advantage를 binary optimality indicator로 바꾸어 VLA prefix에 넣고 policy를 다시 학습한다.</p></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Model Design</p>
+      <h2>π0.6을 RL이 가능한 VLA로 확장한다</h2>
+      <p>π*0.6은 π0.6의 VLM backbone과 flow-matching action expert를 기반으로 한다. 여기에 이진화한 advantage 값을 조건으로 입력할 수 있게 해, “현재 데이터보다 나은 행동”을 생성하도록 한다. value function은 policy와 분리된 더 작은 pretrained VLM 기반 모델로 초기화된다.</p>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">A</div><div><p class="summary-title">Offline RL pre-training</p><p class="summary-desc">여러 로봇과 task에서 얻은 대규모 demonstration dataset으로 먼저 advantage-conditioned generalist VLA를 학습한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">B</div><div><p class="summary-title">Task demonstrations</p><p class="summary-desc">downstream task의 시연으로 초기 task behavior를 맞춘다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">C</div><div><p class="summary-title">Iterative on-robot RL</p><p class="summary-desc">자율 경험과 intervention을 추가한 뒤 value function과 policy를 재학습하는 loop를 한 번 이상 반복한다.</p></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Mathematical Foundation</p>
+      <h2>Value가 “지금 행동이 얼마나 좋은가”를 판단한다</h2>
+      <p>
+        상태 \(o_t\), action \(a_t\), task instruction \(\ell\)이 있을 때, policy는 \(\pi(a_t \mid o_t, \ell)\)로 쓴다.
+        RECAP의 value function은 단순히 성공/실패만 예측하는 분류기가 아니라, 현재 상태에서 앞으로 얻을 return을 예측하는 critic이다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Return과 value</p><p class="formula-desc">논문은 discount를 사용하지 않는 return을 정의한다. \(V^\pi\)는 현재 관측에서 task가 끝날 때까지 기대되는 누적 보상이다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+R(\tau) = \sum_{t=0}^{T} r_t, \qquad
+V^\pi(o_t, \ell) = \mathbb{E}\!\left[\sum_{t'=t}^{T} r_{t'} \mid o_t, \ell\right]
+\]</div></div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Advantage</p><p class="formula-desc">\(A^\pi\)는 현재 action이 value function의 예상보다 얼마나 더 좋거나 나쁜지를 나타낸다. 양수면 예상보다 좋은 진행, 음수면 나쁜 진행에 가깝다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+A^\pi(o_t, a_t, \ell) =
+\mathbb{E}\!\left[\sum_{t'=t}^{t+N-1} r_{t'} + V^\pi(o_{t+N}, \ell)\right]
+- V^\pi(o_t, \ell)
+\]</div></div>
+        </div>
+      </div>
+      <p>
+        구현에서는 value를 하나의 실수로 바로 회귀하지 않고, \(B=201\)개 value bin에 대한 분포 \(p_\phi(V \mid o_t, \ell)\)를 예측한다.
+        실제 return을 bin으로 discretize한 뒤 cross-entropy로 학습해, noisy한 실제 로봇 reward에서도 더 안정적인 critic을 만든다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Distributional value loss</p><p class="formula-desc">모든 trajectory의 각 시점에서 관측된 return bin과 value distribution을 맞춘다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\min_{\phi}\; \mathbb{E}_{\tau \sim D}\!\left[
+\sum_{o_t \in \tau} H\!\left(R_t^B(\tau),\; p_\phi(V \mid o_t, \ell)\right)
+\right]
+\]</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Reward Construction</p>
+      <h2>사람의 매 step 보상 대신, episode 성공/실패 label로 reward를 만든다</h2>
+      <p>
+        “multi-task demonstration에는 reward가 없지 않나?”라는 질문에 대한 논문의 답이다. RECAP은 사람이 매 순간 점수를 주는 dense reward를 요구하지 않는다.
+        각 episode가 최종적으로 성공했는지 실패했는지의 label만 얻고, 이것을 아래의 일반적인 sparse reward로 바꾼다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Episode label → per-step reward</p><p class="formula-desc">성공 episode는 빨리 끝낼수록 좋은 return을 얻고, 실패 episode는 마지막에 큰 penalty를 받는다. \(T\)는 episode의 마지막 시점이고, \(C_{\mathrm{fail}}\)은 큰 양수 상수다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+r_t =
+\begin{cases}
+0 & \text{if } t=T \text{ and success}\\
+-C_{\mathrm{fail}} & \text{if } t=T \text{ and failure}\\
+-1 & \text{otherwise}
+\end{cases}
+\]</div></div>
+        </div>
+      </div>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">성공 trajectory</p><p class="summary-desc">각 step의 reward가 \(-1\)이므로 return은 “성공까지 남은 step 수의 음수”가 된다. 더 빠르게 성공할수록 value가 0에 가까워져 높다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">실패 trajectory</p><p class="summary-desc">마지막에 \(-C_{\mathrm{fail}}\)이 들어가 return이 크게 낮아진다. 따라서 value function은 실패로 향하는 관측과 행동을 낮은 value로 배운다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">실제 label의 출처</p><p class="summary-desc">논문 평가에서는 사람이 episode를 여러 품질 기준으로 평가하고, 이를 하나의 success label로 합친다. 이 label이 value training의 reward source다.</p></div></div>
+      </div>
+      <p>여러 task는 길이가 다르므로 논문은 task별 최대 episode length를 기준으로 value를 정규화해 \((-1, 0)\) 범위로 맞춘다. 이것이 서로 다른 로봇과 작업의 data를 하나의 multi-task value function으로 학습할 수 있게 하는 장치다.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Policy Extraction</p>
+      <h2>숫자 advantage를 “좋은 행동을 내라”는 조건으로 바꾼다</h2>
+      <p>
+        RECAP의 특징은 advantage를 action에 곱하는 전형적인 PPO 방식이 아니다. task별 threshold \(\epsilon_\ell\)보다 advantage가 큰지를
+        이진 indicator \(I_t\)로 만들고, 이를 VLA의 text prefix에 넣는다. 실제 입력은 <code>Advantage: positive</code> 또는
+        <code>Advantage: negative</code>처럼 표현된다.
+      </p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Improvement indicator</p><p class="formula-desc">행동이 reference policy의 기대보다 충분히 좋으면 positive로 label한다. 사람의 intervention action은 positive로 취급한다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+I_t = \mathbb{1}\!\left[A^{\pi_{\mathrm{ref}}}(o_t, a_t, \ell) > \epsilon_\ell\right]
+\]</div></div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Conditional policy objective</p><p class="formula-desc">같은 data를 unconditional policy와 advantage-conditioned policy 양쪽으로 학습한다. 그래서 가능한 모든 data를 버리지 않고 활용하면서, positive 조건에서는 개선된 action distribution을 추출한다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\min_\theta\; \mathbb{E}_{D^{\pi_{\mathrm{ref}}}}\!\left[
+-\log \pi_\theta(a_t \mid o_t, \ell)
+- \alpha \log \pi_\theta(a_t \mid I_t, o_t, \ell)
+\right]
+\]</div></div>
+        </div>
+      </div>
+      <p>
+        이 설계는 flow matching action expert와 잘 맞는다. flow model은 explicit action likelihood를 계산하기 어려워 PPO를 그대로 쓰기 까다로운데,
+        RECAP은 supervised-style conditional training으로 discrete output과 continuous flow-matching loss를 함께 최적화한다.
+      </p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Training Procedure</p>
+      <h2>학습 순서: 범용 policy에서 실제 로봇 개선까지</h2>
+      <p>
+        발표에서는 아래 순서를 하나의 RECAP loop로 설명하면 된다. 앞의 0-1단계는 강한 출발점을 만들고,
+        2-5단계가 실제 배포 경험으로 해당 task를 더 잘하게 만드는 과정이다.
+      </p>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">0</div><div><p class="summary-title">Offline RL pre-training</p><p class="summary-desc">대규모 multi-task demonstration dataset으로 value function \(V_{\mathrm{pre}}\)와 advantage-conditioned policy \(\pi_{\mathrm{pre}}\)를 먼저 학습한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">Target-task demonstrations로 초기 적응</p><p class="summary-desc">목표 task \(\ell\)의 demonstration \(D_\ell\)로 \(V_\ell^0\)를 \(V_{\mathrm{pre}}\)에서, \(\pi_\ell^0\)를 \(\pi_{\mathrm{pre}}\)에서 각각 fine-tune한다. policy 학습 때는 모든 시연을 좋은 행동으로 간주해 \(I_t=\mathrm{True}\)로 고정한다. 즉 이 단계는 SFT에 해당한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">현재 policy를 실제 로봇에 배포</p><p class="summary-desc">\(\pi_\ell^{k-1}\)로 autonomous rollout을 수집하고 각 episode에 성공/실패 outcome reward를 붙인다. 실패 데이터도 버리지 않는다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">사람의 correction을 추가</p><p class="summary-desc">로봇이 큰 실수를 할 때 expert가 teleoperation으로 개입한다. 이 correction action은 positive advantage example으로 취급해, “실패한 상황에서는 어떻게 회복해야 하는가”를 직접 알려 준다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">4</div><div><p class="summary-title">Value function을 다시 학습</p><p class="summary-desc">누적된 demonstration, 자율 rollout, intervention 전체 \(D_\ell\)로 \(V_\ell^k\)를 다시 학습한다. 새 value function이 각 action의 advantage와 \(I_t\) label을 다시 계산한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">5</div><div><p class="summary-title">Advantage-conditioned policy를 다시 학습</p><p class="summary-desc">새 \(I_t\)를 조건으로 \(\pi_\ell^k\)를 학습한다. 논문은 직전 모델을 계속 이어 학습하지 않고, 매 iteration에서 \(\pi_{\mathrm{pre}}\), \(V_{\mathrm{pre}}\) checkpoint로부터 다시 fine-tune해 drift를 줄였다.</p></div></div>
+      </div>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">한 iteration의 상태 변화</p><p class="formula-desc">새 policy가 새 경험을 만들고, 그 경험이 다음 value와 policy를 더 좋게 만든다. \(k\)는 on-robot data collection iteration이다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+D_\ell^{k} = D_\ell^{k-1} \cup
+\{\text{autonomous rollouts, human corrections}\}
+\quad\Longrightarrow\quad
+V_\ell^{k},\, \pi_\ell^{k}
+\]</div></div>
+        </div>
+      </div>
+      <p><strong>핵심 메시지:</strong> π*₀.₆은 “시연으로 policy를 만들고 끝”이 아니다. 실제로 실패한 경험을 value function이 평가하고, 사람의 교정까지 포함한 데이터를 다시 policy에 반영하는 반복 학습 시스템이다.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Results & Takeaway</p>
+      <h2>“잘 따라 하기”에서 “경험으로 더 잘하기”로</h2>
+      <p>논문은 diverse laundry folding, box assembly, professional espresso making을 실제 환경에서 평가한다. 평가 지표는 성공률뿐 아니라 시간당 성공 횟수인 throughput이며, 이는 속도와 성공률을 함께 반영한다.</p>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">Hard tasks: throughput 2×+</p><p class="summary-desc">on-robot data를 추가한 final RECAP model은 diverse laundry와 espresso task에서 성공적인 작업 완료 횟수를 시간당 두 배 이상 높였다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">Failure rate: about 1/2</p><p class="summary-desc">가장 어려운 task에서 실패율은 약 절반으로 감소했다. diverse laundry를 제외한 모든 task에서 final model의 success rate는 90% 이상이다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">Iteration matters</p><p class="summary-desc">두 번의 RECAP iteration으로 laundry throughput은 약 50%, long-horizon box assembly throughput은 약 2배 개선됐다. 특히 긴 task는 더 많은 real-world data가 필요했다.</p></div></div>
+      </div>
+      <p>또한 AWR과 PPO 비교에서 RECAP의 advantage-conditioned extraction이 가장 높은 throughput을 보였다. 이는 이 논문의 주장이 단순히 “RL을 넣었다”가 아니라, <strong>large flow-based VLA에 맞는 policy extraction 방식</strong>을 설계했다는 데 있음을 보여준다.</p>
+      <p>π0.6이 강한 범용 기본 policy라면, π*0.6은 그 policy가 실제 배치에서 얻은 신호로 지속적으로 전문성을 높일 수 있음을 보인 단계다.</p>
+      <p>원문: <a class="proof-link" href="https://arxiv.org/abs/2511.14759" target="_blank" rel="noreferrer">π*0.6: a VLA That Learns From Experience ↗</a></p>
+    </section>
+  </main>
+</body>
+</html>
