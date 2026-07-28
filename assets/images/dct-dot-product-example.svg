@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="790" viewBox="0 0 1200 790" role="img" aria-labelledby="title desc">
+  <title id="title">DCT 내적이 cosine 모양의 유사도를 측정하는 예시</title>
+  <desc id="desc">같은 방향의 action과 cosine basis는 곱한 값이 모두 양수라 큰 합을 만들고, 맞지 않는 action은 양수와 음수가 상쇄되어 작은 합을 만든다.</desc>
+  <style>
+    .bg { fill: #f8f8f5; }
+    .panel { fill: #ffffff; stroke: #d6d6d0; stroke-width: 2; }
+    .title { fill: #111111; font: 800 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .label { fill: #555555; font: 650 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .small { fill: #666666; font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .mono { fill: #111111; font: 700 22px ui-monospace, SFMono-Regular, Menlo, monospace; text-anchor: middle; dominant-baseline: middle; }
+    .formula { fill: #111111; font: 700 23px "Times New Roman", serif; }
+    .positive { fill: #d9f0e8; stroke: #238567; stroke-width: 2; }
+    .negative { fill: #fbe2df; stroke: #bd4c47; stroke-width: 2; }
+    .basis { fill: #e9e9e4; stroke: #777777; stroke-width: 2; }
+    .arrow { stroke: #8a8a84; stroke-width: 2.5; marker-end: url(#arrow); }
+    .line { stroke: #d6d6d0; stroke-width: 2; }
+    .good { fill: #176f56; }
+    .bad { fill: #a83e3a; }
+    .result { fill: #111111; font: 850 25px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; }
+    .resultSub { fill: #555555; font: 650 16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8a84"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1200" height="790" rx="20"/>
+  <text x="56" y="58" class="title">왜 action × cosine을 모두 더하면 “그 cosine 모양과 닮은 정도”가 될까?</text>
+  <text x="56" y="88" class="small">아래 basis는 원리를 위한 단순화된 cosine 모양이다. 실제 DCT에서는 H개 timestep의 cosine 값을 사용한다.</text>
+
+  <rect class="panel" x="48" y="124" width="540" height="610" rx="14"/>
+  <text x="78" y="168" class="title">A. 같은 모양이면 점수가 쌓인다</text>
+  <text x="78" y="198" class="label">앞은 +, 뒤는 −인 basis와 action이 같은 방향으로 움직인다.</text>
+
+  <text x="78" y="247" class="label">cosine basis b</text>
+  <rect class="basis" x="250" y="220" width="62" height="54" rx="8"/><text class="mono" x="281" y="247">+1</text>
+  <rect class="basis" x="322" y="220" width="62" height="54" rx="8"/><text class="mono" x="353" y="247">+1</text>
+  <rect class="basis" x="394" y="220" width="62" height="54" rx="8"/><text class="mono" x="425" y="247">−1</text>
+  <rect class="basis" x="466" y="220" width="62" height="54" rx="8"/><text class="mono" x="497" y="247">−1</text>
+
+  <text x="78" y="332" class="label">actual action a</text>
+  <rect class="positive" x="250" y="305" width="62" height="54" rx="8"/><text class="mono" x="281" y="332">+2</text>
+  <rect class="positive" x="322" y="305" width="62" height="54" rx="8"/><text class="mono" x="353" y="332">+3</text>
+  <rect class="negative" x="394" y="305" width="62" height="54" rx="8"/><text class="mono" x="425" y="332">−2</text>
+  <rect class="negative" x="466" y="305" width="62" height="54" rx="8"/><text class="mono" x="497" y="332">−4</text>
+
+  <line class="arrow" x1="290" y1="376" x2="290" y2="417"/><line class="arrow" x1="362" y1="376" x2="362" y2="417"/><line class="arrow" x1="434" y1="376" x2="434" y2="417"/><line class="arrow" x1="506" y1="376" x2="506" y2="417"/>
+  <text x="78" y="459" class="label">product a × b</text>
+  <rect class="positive" x="250" y="432" width="62" height="54" rx="8"/><text class="mono" x="281" y="459">+2</text>
+  <rect class="positive" x="322" y="432" width="62" height="54" rx="8"/><text class="mono" x="353" y="459">+3</text>
+  <rect class="positive" x="394" y="432" width="62" height="54" rx="8"/><text class="mono" x="425" y="459">+2</text>
+  <rect class="positive" x="466" y="432" width="62" height="54" rx="8"/><text class="mono" x="497" y="459">+4</text>
+  <line class="line" x1="78" y1="522" x2="558" y2="522"/>
+  <text x="78" y="560" class="formula">2 + 3 + 2 + 4 = 11</text>
+  <text class="result good" x="318" y="620">큰 절댓값의 계수</text>
+  <text class="resultSub" x="318" y="651">이 cosine 성분이 action에 많이 포함됨</text>
+  <text x="78" y="698" class="small">같은 부호끼리 곱하면 +가 되어, 모든 시간 구간의 점수가 누적된다.</text>
+
+  <rect class="panel" x="612" y="124" width="540" height="610" rx="14"/>
+  <text x="642" y="168" class="title">B. 맞지 않으면 서로 상쇄된다</text>
+  <text x="642" y="198" class="label">같은 basis지만 action의 방향이 일정하게 맞지 않는다.</text>
+
+  <text x="642" y="247" class="label">cosine basis b</text>
+  <rect class="basis" x="814" y="220" width="62" height="54" rx="8"/><text class="mono" x="845" y="247">+1</text>
+  <rect class="basis" x="886" y="220" width="62" height="54" rx="8"/><text class="mono" x="917" y="247">+1</text>
+  <rect class="basis" x="958" y="220" width="62" height="54" rx="8"/><text class="mono" x="989" y="247">−1</text>
+  <rect class="basis" x="1030" y="220" width="62" height="54" rx="8"/><text class="mono" x="1061" y="247">−1</text>
+
+  <text x="642" y="332" class="label">actual action a</text>
+  <rect class="positive" x="814" y="305" width="62" height="54" rx="8"/><text class="mono" x="845" y="332">+2</text>
+  <rect class="negative" x="886" y="305" width="62" height="54" rx="8"/><text class="mono" x="917" y="332">−3</text>
+  <rect class="negative" x="958" y="305" width="62" height="54" rx="8"/><text class="mono" x="989" y="332">−2</text>
+  <rect class="positive" x="1030" y="305" width="62" height="54" rx="8"/><text class="mono" x="1061" y="332">+4</text>
+
+  <line class="arrow" x1="854" y1="376" x2="854" y2="417"/><line class="arrow" x1="926" y1="376" x2="926" y2="417"/><line class="arrow" x1="998" y1="376" x2="998" y2="417"/><line class="arrow" x1="1070" y1="376" x2="1070" y2="417"/>
+  <text x="642" y="459" class="label">product a × b</text>
+  <rect class="positive" x="814" y="432" width="62" height="54" rx="8"/><text class="mono" x="845" y="459">+2</text>
+  <rect class="negative" x="886" y="432" width="62" height="54" rx="8"/><text class="mono" x="917" y="459">−3</text>
+  <rect class="positive" x="958" y="432" width="62" height="54" rx="8"/><text class="mono" x="989" y="459">+2</text>
+  <rect class="negative" x="1030" y="432" width="62" height="54" rx="8"/><text class="mono" x="1061" y="459">−4</text>
+  <line class="line" x1="642" y1="522" x2="1122" y2="522"/>
+  <text x="642" y="560" class="formula">2 − 3 + 2 − 4 = −3</text>
+  <text class="result bad" x="882" y="620">작은 절댓값의 계수</text>
+  <text class="resultSub" x="882" y="651">이 cosine 성분은 action을 잘 설명하지 못함</text>
+  <text x="642" y="698" class="small">같은 방향과 반대 방향이 섞이면 +와 −가 상쇄되어 합이 작아진다.</text>
+</svg>
