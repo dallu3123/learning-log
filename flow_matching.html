@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow Matching for Generative Modeling</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+  <link rel="stylesheet" href="assets/css/flow-matching.css" />
+</head>
+<body>
+  <main class="page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="index.html">← Back to Diffusion / Flow notes</a>
+    </nav>
+
+    <section class="hero fm-hero">
+      <div class="badge">Paper Note · Lipman et al., 2023</div>
+      <h1>Flow Matching<br />for Generative Modeling</h1>
+      <p class="subtitle">The starting point of modern flow matching: learning a continuous vector field that transports noise into data without simulating an ODE during training.</p>
+      <a class="lineage-link" href="flow_matching_lineage.html">Flow Matching 계보 쉽게 이해하기 →</a>
+      <div class="path-strip" aria-label="Flow matching generation path">
+        <div><span>t = 0</span><strong>Gaussian noise</strong></div>
+        <i aria-hidden="true">→</i>
+        <div><span>learned vector field</span><strong>CNF / ODE</strong></div>
+        <i aria-hidden="true">→</i>
+        <div><span>t = 1</span><strong>Data distribution</strong></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Big picture</p>
+      <h2>이 논문이 만든 출발점</h2>
+      <p>이 논문은 Continuous Normalizing Flow(CNF)를 대규모로 학습하는 간단한 방법을 제안한다. 핵심은 noise에서 data로 가는 전체 확률 분포 경로를 정하고, 그 경로를 움직이는 <em>vector field</em>를 신경망이 회귀하도록 만드는 것이다.</p>
+      <div class="summary-list compact">
+        <article class="summary-item"><div class="summary-mark">1</div><div><p class="summary-title">Simulation-free training</p><p class="summary-desc">학습 단계에서는 ODE를 풀지 않는다. 각 시간의 정답 velocity를 직접 맞춘다.</p></div></article>
+        <article class="summary-item"><div class="summary-mark">2</div><div><p class="summary-title">Conditional Flow Matching</p><p class="summary-desc">계산하기 어려운 전체 경로 대신, 데이터 샘플 하나에 조건부인 쉬운 경로를 사용한다.</p></div></article>
+        <article class="summary-item"><div class="summary-mark">3</div><div><p class="summary-title">Paths beyond diffusion</p><p class="summary-desc">diffusion path뿐 아니라 Optimal Transport(OT) path처럼 직접 설계한 경로도 쓸 수 있다.</p></div></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 1 · CNF</p>
+      <h2>생성은 vector field를 따라가는 ODE다</h2>
+      <p>시작 분포 (p_0)에서 noise (x_0)를 뽑는다. 시간과 현재 위치를 입력받는 신경망 (v_t(x;\theta))가 어느 방향으로 움직일지 정하고, ODE를 (t=0)부터 (1)까지 풀면 샘플은 data 분포 (p_1)로 운반된다.</p>
+      <div class="formula-stack">
+        <div class="formula-step"><div class="formula-copy"><p class="formula-title">Continuous Normalizing Flow</p><p class="formula-desc">학습할 대상은 이미지 자체가 아니라, 위치별 이동 방향인 time-dependent vector field다.</p></div><div class="formula-body"><div class="formula">\[\frac{d\phi_t(x)}{dt}=v_t(\phi_t(x);\theta),\qquad \phi_0(x)=x\]</div></div></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 2 · Flow Matching</p>
+      <h2>원하는 확률 경로의 velocity를 맞춘다</h2>
+      <p>어떤 확률 경로 (p_t(x))와 이를 생성하는 target vector field (u_t(x))가 있다면, Flow Matching은 모델 (v_t)가 (u_t)를 회귀하도록 학습한다. loss가 충분히 작아지면 배운 CNF도 같은 분포 경로를 만든다.</p>
+      <div class="formula-stack"><div class="formula-step"><div class="formula-copy"><p class="formula-title">FM objective</p><p class="formula-desc">문제는 실제 data 분포에서 만든 marginal (u_t)를 직접 계산하기 어렵다는 점이다.</p></div><div class="formula-body"><div class="formula">\[\mathcal{L}_{\mathrm{FM}}(\theta)=\mathbb{E}_{t,\,x\sim p_t}\left\|v_t(x;\theta)-u_t(x)\right\|^2\]</div></div></div></div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 3 · Conditional Flow Matching</p>
+      <h2>어려운 전체 경로를, 쉬운 샘플별 경로로 바꾼다</h2>
+      <p>data sample (x_1\sim q) 하나를 고정하고, standard Gaussian noise에서 (x_1) 근처로 가는 조건부 경로 (p_t(x\mid x_1))를 만든다. 이 경로의 velocity (u_t(x\mid x_1))는 닫힌 형태로 계산할 수 있다.</p>
+      <div class="formula-stack"><div class="formula-step"><div class="formula-copy"><p class="formula-title">CFM objective</p><p class="formula-desc">논문의 핵심 정리: CFM과 원래 FM은 \(\theta\)에 대한 gradient가 같다. 따라서 이 실용적인 loss만 최적화하면 된다.</p></div><div class="formula-body"><div class="formula">\[\mathcal{L}_{\mathrm{CFM}}(\theta)=\mathbb{E}_{t,\,x_1,\,x\sim p_t(\cdot\mid x_1)}\left\|v_t(x;\theta)-u_t(x\mid x_1)\right\|^2\]</div></div></div></div>
+      <div class="key-callout"><strong>한 문장으로:</strong> 데이터 전체를 설명하는 velocity를 직접 구하지 않고, 각 데이터 샘플로 향하는 간단한 velocity를 맞춰 같은 학습 방향을 얻는다.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 4 · Path design</p>
+      <h2>Diffusion path와 OT path</h2>
+      <p>CFM은 조건부 확률 경로만 정의할 수 있으면 동작한다. 논문은 Gaussian path의 일반형을 제시하고, 기존 diffusion path와 직선적인 OT displacement interpolation을 비교한다.</p>
+      <div class="compare-grid">
+        <article class="compare-card"><p class="compare-label">Diffusion path</p><h3>끝에서야 noise가 빠지는 곡선 경로</h3><p>기존 diffusion process에서 유도할 수 있다. 널리 쓰이지만, 경로가 휘고 sampling 중 backtracking이 나타날 수 있다.</p></article>
+        <article class="compare-card emphasis"><p class="compare-label">OT path</p><h3>직선, 일정한 속도의 조건부 경로</h3><p>mean과 standard deviation을 선형으로 바꾼다. regression target이 단순해져 더 빠른 학습과 sampling을 기대할 수 있다.</p></article>
+      </div>
+      <div class="formula-note">OT conditional path: \(\psi_t(x_0)=[1-(1-\sigma_{\min})t]x_0+t x_1\). 각 particle은 noise에서 target sample 쪽으로 곧게 이동한다.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Results</p>
+      <h2>논문의 실험 메시지</h2>
+      <div class="result-grid">
+        <div><strong>Better quality</strong><span>ImageNet과 CIFAR-10에서 FM with OT가 비교 방법보다 좋은 FID와 likelihood를 보였다.</span></div>
+        <div><strong>Faster sampling</strong><span>OT path는 적은 NFE로도 낮은 ODE error와 좋은 sample quality를 유지했다.</span></div>
+        <div><strong>Beyond images</strong><span>64×64에서 256×256으로의 conditional super-resolution에도 적용했다.</span></div>
+      </div>
+    </section>
+
+    <section class="section takeaway">
+      <p class="section-kicker">Takeaway</p>
+      <h2>Flow Matching은 “diffusion process”가 아니라 “probability path”를 직접 설계하게 만들었다.</h2>
+      <p>이 관점은 이후 flow-matching policy, robot action generation, rectified flow 등으로 이어지는 기반이 된다. 다음에는 OT path의 식과 diffusion/score matching과의 관계를 더 자세히 확장할 수 있다.</p>
+      <p class="paper-link">Source: <a href="source/flow%20matching%20for%20generative%20modeling.pdf">Flow Matching for Generative Modeling (PDF)</a></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,45 @@
+.lineage-hero { background: linear-gradient(135deg, #ffffff 0%, #f4f1fb 100%); }
+.video-link { display: inline-flex; margin-top: 22px; padding: 8px 13px; border: 1px solid #705c9b; border-radius: 999px; color: #46346e; font-size: 14px; font-weight: 850; }
+.video-link:hover { background: #4d3d78; color: #ffffff; }
+.goal-flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 24px; }
+.goal-flow div { min-height: 128px; padding: 18px; border: 1px solid #d6d6d0; border-radius: 8px; background: #fbfbfa; text-align: center; }
+.goal-flow span, .card-label, .limit-card span { color: #6d6483; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.goal-flow strong { display: block; margin-top: 5px; color: #211a38; font-size: 19px; }
+.goal-flow p { margin: 6px 0 0; font-size: 14px; }
+.goal-flow > i { color: #574778; font-size: 25px; font-style: normal; }
+.callout, .section-note { margin-top: 20px; padding: 16px 18px; border-left: 3px solid #5b4a82; border-radius: 0 8px 8px 0; background: #f5f2fa; color: #403857; font-size: 16px; }
+.limit-card { margin-top: 18px; padding: 16px 18px; border: 1px solid #cfc6df; border-radius: 8px; background: #fcfbff; }
+.limit-card p { margin: 5px 0 0; font-size: 15px; }
+.density-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+.density-board article { padding: 18px; border: 1px solid #d6d6d0; border-radius: 8px; background: #fbfbfa; text-align: center; }
+.density-board strong { font-size: 18px; }
+.density-board p { margin: 7px 0 0; font-size: 15px; }
+.dots { margin: 18px 0 8px; color: #58457e; font-size: 30px; letter-spacing: 2px; }
+.dots.tight { letter-spacing: -1px; }
+.train-sample { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 22px; }
+.train-sample > div { padding: 18px; border: 1px solid #cbc3df; border-radius: 8px; background: #f8f6fc; }
+.train-sample span { display: block; color: #6d6483; font-size: 12px; font-weight: 900; text-transform: uppercase; }
+.train-sample strong { display: block; margin-top: 6px; color: #211a38; font-size: 19px; }
+.train-sample p { margin: 6px 0 0; font-size: 15px; }
+.chapter-divider { margin: 56px 0 28px; padding: 34px; border: 1px solid #cfc6df; border-radius: 8px; background: #eeeaf7; }
+.chapter-divider span { color: #624f8b; font-size: 13px; font-weight: 900; text-transform: uppercase; }
+.chapter-divider h2 { margin: 8px 0 0; color: #211a38; font-size: 32px; line-height: 1.2; }
+.chapter-divider p { max-width: 720px; font-size: 16px; }
+.solver-board { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin-top: 22px; }
+.solver-board article { min-height: 130px; display: grid; align-content: center; gap: 6px; padding: 18px; border: 1px solid #d6d6d0; border-radius: 8px; background: #fbfbfa; text-align: center; }
+.solver-board span { color: #6d6483; font-size: 13px; font-weight: 850; }
+.solver-board strong { color: #211a38; font-size: 18px; }
+.solver-board p { margin: 0; font-size: 14px; }
+.solver-board > i { color: #574778; font-size: 25px; font-style: normal; }
+.step-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+.step-grid article { padding: 16px; border: 1px solid #d6d6d0; border-radius: 8px; background: #fbfbfa; }
+.step-grid span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: #46366f; color: #fff; font-size: 14px; font-weight: 900; }
+.step-grid p { margin: 10px 0 0; font-size: 15px; }
+.compare-card.emphasis { border-color: #5e4c89; background: #f8f6fc; }
+
+@media (max-width: 760px) {
+  .goal-flow, .density-board, .train-sample, .solver-board, .step-grid { grid-template-columns: 1fr; }
+  .goal-flow > i, .solver-board > i { transform: rotate(90deg); text-align: center; }
+  .chapter-divider { padding: 26px; }
+  .chapter-divider h2 { font-size: 27px; }
+}

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>π0-FAST | Learning Log</title>
   <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
 <body>
   <main class="page">
@@ -65,6 +67,43 @@
         저주파 성분은 trajectory의 전체 모양을, 고주파 성분은 급격한 변화만 담는다. 대부분의 실제 행동은 매끄럽기 때문에
         적은 수의 중요한 계수만 남겨도 motion을 충분히 복원할 수 있다.
       </p>
+      <figure class="paper-figure fast-tokenizer-figure">
+        <img src="assets/images/pi-fast-tokenizer.png" alt="FAST action tokenization: normalized action chunk를 DCT, quantization, flattening, BPE compression으로 action token으로 바꾸는 과정" />
+        <figcaption>FAST tokenizer pipeline. 그림의 숫자는 로봇 action 자체가 아니라, DCT 후 양자화된 주파수 계수와 이를 압축한 BPE token ID다.</figcaption>
+      </figure>
+      <div class="fast-figure-intro">
+        <p class="section-kicker">How to read this figure</p>
+        <h3>이 그림은 “시간 순서의 action”을 “압축된 주파수 token”으로 바꾸는 과정이다</h3>
+        <p>
+          위쪽의 파란색·노란색은 <strong>서로 다른 action dimension</strong>이고, 각 행은 한 관절 또는 gripper 등의 한 차원을 뜻한다.
+          3번 그림의 열은 미래 timestep이 아니라 <strong>주파수 계수의 순서</strong>다. 따라서 오른쪽으로 갈수록 대체로 더 빠르게 흔들리는 성분을 나타낸다.
+        </p>
+      </div>
+      <ol class="fast-figure-steps">
+        <li>
+          <strong>1. Normalized action chunk</strong>
+          <span>예를 들어 미래 1초 동안의 joint-1, joint-2 action 궤적이다. 각 차원을 1%·99% quantile로 대략 [-1, 1] 범위에 맞춘다. 그림에는 이해를 위해 처음 두 차원만 곡선으로 표시했다.</span>
+        </li>
+        <li>
+          <strong>2. DCT</strong>
+          <span>각 곡선을 여러 cosine 파형의 합으로 바꾼다. 첫 막대들은 trajectory의 큰 흐름을 담는 저주파 계수이고, 뒤쪽 막대들은 순간적인 흔들림을 담는 고주파 계수다.</span>
+        </li>
+        <li>
+          <strong>3. Quantize → sparse frequency matrix</strong>
+          <span>DCT 계수를 scale한 뒤 정수로 round한다. 매끄러운 로봇 motion은 고주파 계수가 작아서 대부분 0이 된다. 여기서 <code>124</code>, <code>-86</code> 등은 아직 BPE token이 아니라 양자화된 주파수 계수다.</span>
+        </li>
+        <li>
+          <strong>4. Flatten, low frequency first</strong>
+          <span>행렬을 한 줄로 펼칠 때 한 action dimension을 끝까지 읽지 않는다. 모든 dimension의 저주파 계수를 먼저 읽는다. 전체 움직임 모양을 먼저 생성하도록 만들어 autoregressive rollout을 안정화한다.</span>
+        </li>
+        <li>
+          <strong>5. BPE compressed action tokens</strong>
+          <span>BPE가 자주 함께 등장하는 정수 계수열을 하나의 vocabulary token으로 합친다. 예를 들어 아래의 <code>978</code>은 action 값 978이 아니라, 위쪽의 특정 계수 조합을 가리키는 token ID다. VLA는 이 짧은 token sequence를 autoregressive하게 예측한다.</span>
+        </li>
+      </ol>
+      <div class="fast-reverse-flow" aria-label="FAST decoding flow">
+        <span>VLA가 BPE token 예측</span><b>→</b><span>BPE 확장</span><b>→</b><span>계수 행렬 복원</span><b>→</b><span>inverse DCT</span><b>→</b><span>연속 action chunk</span>
+      </div>
       <div class="summary-list">
         <div class="summary-item">
           <div class="summary-mark">1</div>
@@ -88,6 +127,185 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">DCT Mathematics</p>
+      <h2>DCT는 action trajectory를 cosine 모양들의 합으로 보는 좌표변환이다</h2>
+      <p>
+        DCT는 학습되는 neural network가 아니라 정해진 수식이다. FAST는 action chunk의 각 dimension을 독립적으로 처리한다.
+        즉 한 관절의 미래 <em>H</em>개 action 값을 길이 <em>H</em>개의 frequency coefficient로 바꾸며, coefficient의 개수는 줄지 않는다.
+        실제 압축은 그 다음 quantization과 BPE 단계에서 일어난다.
+      </p>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">입력: 한 action dimension의 시간 신호</p>
+            <p class="formula-desc"><span>i</span>번 관절만 떼어 보면, 길이 <span>H</span>의 action chunk는 시간 순서의 값 <span>a<sup>i</sup><sub>0</sub>, …, a<sup>i</sup><sub>H−1</sub></span>이다. <span>n</span>은 timestep index다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              a^i_{0:H-1}=\left[a^i_0, a^i_1, \ldots, a^i_{H-1}\right]
+            \]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Forward DCT: 각 cosine 모양과 얼마나 닮았는가</p>
+            <p class="formula-desc"><span>k</span>는 시간 index가 아니라 cosine의 주파수 번호다. 각 <span>C<sup>i</sup><sub>k</sub></span>는 action 곡선과 <span>k</span>번째 cosine basis의 내적, 즉 그 모양이 얼마나 필요한지를 나타낸다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              C^i_k = \alpha_k \sum_{n=0}^{H-1} a^i_n
+              \cos\!\left(\frac{\pi}{H}\left(n+\frac{1}{2}\right)k\right),
+              \qquad k=0,\ldots,H-1
+            \]</div>
+            <div class="formula-divider"></div>
+            <div class="formula-note">표준 DCT-II 정규화에서는 \(\alpha_0=\sqrt{1/H}\), \(\alpha_k=\sqrt{2/H}\;(k&gt;0)\)를 쓴다. 구현에 따라 이 정규화 상수의 위치는 달라질 수 있지만, coefficient의 의미는 같다.</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">Inverse DCT: 계수들을 다시 action 궤적으로 복원</p>
+            <p class="formula-desc">VLA가 예측한 token을 BPE로 풀고 coefficient 행렬을 복원하면, 같은 cosine basis들을 가중합해 원래 시간 순서의 action chunk를 얻는다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              a^i_n = \sum_{k=0}^{H-1}\alpha_k C^i_k
+              \cos\!\left(\frac{\pi}{H}\left(n+\frac{1}{2}\right)k\right),
+              \qquad n=0,\ldots,H-1
+            \]</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fast-figure-intro">
+        <p class="section-kicker">How to read k</p>
+        <h3><em>k</em>가 커질수록 더 빠르게 출렁이는 cosine basis를 뜻한다</h3>
+        <p>
+          <strong>k = 0</strong>은 평평한 모양이라 전체 평균/offset을 담고, <strong>k = 1</strong>은 천천히 변하는 큰 흐름을 담는다.
+          <strong>k = 2, 3, …</strong>으로 갈수록 더 많은 굴곡과 빠른 떨림을 표현한다. 실제 robot motion은 보통 매끄러워서 작은 <em>k</em>의 계수에 정보가 집중되고, 큰 <em>k</em>의 계수는 작아지는 경향이 있다.
+        </p>
+      </div>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">n</div>
+          <div>
+            <p class="summary-title">시간축 index</p>
+            <p class="summary-desc"><code>n = 0, …, H−1</code>은 action chunk 내부의 미래 timestep이다. DCT 전에는 이 축을 따라 관절 command가 나열되어 있다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">k</div>
+          <div>
+            <p class="summary-title">주파수축 index</p>
+            <p class="summary-desc"><code>k = 0, …, H−1</code>은 cosine basis의 번호다. DCT 뒤의 열은 timestep이 아니라 각 주파수 성분의 크기 <code>Cᶦₖ</code>다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">C</div>
+          <div>
+            <p class="summary-title">그 cosine 모양의 가중치</p>
+            <p class="summary-desc"><code>Cᶦₖ</code>의 절댓값이 크면 i번 관절 trajectory를 만들 때 k번째 cosine 모양이 많이 필요하다는 뜻이다. 부호는 해당 cosine을 같은 방향 또는 반대 방향으로 더한다는 뜻이다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">FAST의 DCT 다음 단계: 계수를 정수로 양자화</p>
+            <p class="formula-desc">DCT 출력은 실수지만, language model이 예측할 수 있게 scale한 뒤 round한다. 논문의 기본 설정은 \(\gamma=10\)이다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              \bar{C}^{i}_{k}=\operatorname{round}\!\left(\gamma C^{i}_{k}\right)
+            \]</div>
+            <div class="formula-note">매끄러운 motion에서는 고주파 \(C^i_k\)가 작다. round 후 많은 값이 0이 되어 sparse frequency matrix가 생기고, 이후 low-frequency-first flatten과 BPE가 이를 짧은 FAST token sequence로 압축한다.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">BPE Compression</p>
+      <h2>BPE는 자주 함께 나오는 DCT 계수열에 하나의 token ID를 붙인다</h2>
+      <p>
+        DCT와 quantization 뒤에는 정수 coefficient가 길게 나열된다. BPE(Byte Pair Encoding)는 학습 데이터 전체에서
+        자주 반복되는 <strong>인접한 정수열</strong>을 찾아 하나의 새 symbol로 합친다. 이때 새 token은 action 값이 아니라,
+        여러 coefficient를 가리키는 dictionary ID다.
+      </p>
+
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">BPE 전: flatten된 정수 coefficient 열</p>
+            <p class="formula-desc">각 숫자는 양자화된 DCT 계수다. 특히 고주파 쪽에는 작은 값이 round되어 생긴 0이 많이 나타난다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              [124,\,-86,\,344,\,-45,\,178,\,12,\,0,\,0,\,0,\,0,\,12,\,\ldots]
+            \]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">BPE dictionary의 예시</p>
+            <p class="formula-desc">아래 ID는 그림을 위한 예시다. 실제 dictionary는 action dataset의 계수열을 세어 학습하며, 어떤 ID가 어떤 묶음을 뜻하는지는 그 dictionary가 정한다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              [124,\,-86]\mapsto 978,\qquad [344,\,-45]\mapsto 233,\qquad
+              [178,\,12,\,0]\mapsto 19,\qquad [0,\,0]\mapsto 1022
+            \]</div>
+          </div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy">
+            <p class="formula-title">BPE 후: VLA가 실제로 예측하는 FAST token 열</p>
+            <p class="formula-desc"><code>978</code>은 “action 값 978”이 아니다. 위의 <code>[124, −86]</code>이라는 coefficient 묶음을 뜻하는 vocabulary ID이며, VLA는 이 ID들을 next-token prediction으로 생성한다.</p>
+          </div>
+          <div class="formula-body">
+            <div class="formula">\[
+              [978,\,233,\,19,\,1022,\,\ldots]
+            \]</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="summary-list">
+        <div class="summary-item">
+          <div class="summary-mark">1</div>
+          <div>
+            <p class="summary-title">처음에는 각 정수 계수가 기본 symbol이다</p>
+            <p class="summary-desc">예를 들어 <code>0</code>, <code>12</code>, <code>−86</code> 각각을 하나의 symbol로 놓고 시작한다. BPE는 action trajectory를 보며 이 symbol들의 인접 쌍 빈도를 센다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">2</div>
+          <div>
+            <p class="summary-title">가장 자주 나오는 인접 쌍을 새 symbol로 병합한다</p>
+            <p class="summary-desc">예를 들어 <code>[0, 0]</code>이 가장 많이 나오면 이를 새 token 하나로 등록한다. 이후에는 그 token도 다른 이웃 token과 다시 병합될 수 있어, 2개뿐 아니라 길이가 3개 이상인 계수열도 한 token이 될 수 있다.</p>
+          </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-mark">3</div>
+          <div>
+            <p class="summary-title">정한 vocabulary 크기까지 반복한다</p>
+            <p class="summary-desc">논문의 기본 설정은 BPE vocabulary 크기 1024다. “최소 몇 번 등장해야 병합한다”는 고정 임계값을 직접 정하는 방식이 아니라, 매 단계에서 가장 빈도가 높은 쌍을 골라 vocabulary가 찰 때까지 병합하는 방식이다.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="fast-reverse-flow" aria-label="BPE decoding flow">
+        <span>VLA가 token ID 예측</span><b>→</b><span>BPE dictionary 조회</span><b>→</b><span>정수 coefficient 열로 확장</span><b>→</b><span>inverse DCT</span><b>→</b><span>연속 action chunk</span>
+      </div>
+      <p>
+        BPE는 딥러닝 decoder가 아니라, 데이터 빈도로 만들어진 <strong>고정 압축 사전</strong>이다. FAST에서 DCT가 움직임의 중요한
+        정보를 저주파 계수에 모으고, quantization이 많은 계수를 0으로 만든 뒤, BPE가 이 반복 패턴을 짧은 token 열로 바꾼다.
+      </p>
     </section>
 
     <section class="section">

@@ -1,0 +1,28 @@
+.fm-hero { background: linear-gradient(135deg, #ffffff 0%, #f1f7f4 100%); }
+
+.lineage-link { display: inline-flex; margin-top: 20px; padding: 7px 12px; border: 1px solid #2f6046; border-radius: 999px; color: #214b34; font-size: 14px; font-weight: 800; }
+.lineage-link:hover { background: #2f6046; color: #ffffff; }
+
+.path-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 12px; align-items: center; margin-top: 28px; }
+.path-strip div { min-height: 82px; display: grid; gap: 4px; align-content: center; padding: 14px; border: 1px solid #cfd9d2; border-radius: 8px; background: rgba(255,255,255,.76); text-align: center; }
+.path-strip span { color: #5f7066; font-size: 12px; font-weight: 800; }
+.path-strip strong { font-size: 16px; }
+.path-strip i { color: #3f7055; font-size: 24px; font-style: normal; }
+.summary-list.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.summary-list.compact .summary-item { grid-template-columns: 1fr; }
+.formula-note, .key-callout { margin-top: 20px; padding: 16px 18px; border: 1px solid #cfd9d2; border-radius: 8px; background: #f2f7f3; color: #36473c; font-size: 15px; line-height: 1.65; }
+.key-callout { border-color: #2f6046; background: #163d2a; color: #eff8f1; }
+.compare-card.emphasis { border-color: #2f6046; background: #f2f7f3; }
+.result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+.result-grid div { min-height: 142px; padding: 18px; border: 1px solid #d6d6d0; border-radius: 8px; background: #fbfbfa; }
+.result-grid strong { display: block; color: #173b29; font-size: 18px; }
+.result-grid span { display: block; margin-top: 8px; color: #565656; font-size: 15px; line-height: 1.55; }
+.takeaway { border-color: #2f6046; background: #f5faf6; }
+.takeaway h2 { max-width: 860px; }
+.paper-link { font-size: 14px; }
+.paper-link a { text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .path-strip, .summary-list.compact, .result-grid { grid-template-columns: 1fr; }
+  .path-strip i { transform: rotate(90deg); text-align: center; }
+}

@@ -90,6 +90,11 @@ A^\pi(o_t, a_t, \ell) =
         구현에서는 value를 하나의 실수로 바로 회귀하지 않고, \(B=201\)개 value bin에 대한 분포 \(p_\phi(V \mid o_t, \ell)\)를 예측한다.
         실제 return을 bin으로 discretize한 뒤 cross-entropy로 학습해, noisy한 실제 로봇 reward에서도 더 안정적인 critic을 만든다.
       </p>
+      <div class="summary-list">
+        <div class="summary-item"><div class="summary-mark">201</div><div><p class="summary-title">Bin은 “무슨 물체인가”가 아니라 “성공에서 얼마나 떨어졌는가”라는 class다</p><p class="summary-desc">동물 분류의 class가 개·고양이·말이라면, 여기의 201개 class는 return/진행도 구간이다. 논문은 task별 value를 \((-1,0)\)으로 정규화한다. 따라서 낮은 index는 성공에서 멀거나 실패 쪽, 중간 index는 중간 진행도, 높은 index는 성공 직전·성공에 가깝다. 예를 들어 균일 구간으로 보면 bin 100은 대략 \(-0.5\) 근처의 value를 뜻한다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">CE</div><div><p class="summary-title">Cross-entropy는 201개 중 하나를 맞히는 하나의 분류 문제다</p><p class="summary-desc">각 시점의 실제 return을 가장 가까운 bin 하나로 바꿔 정답 label로 쓴다. value model은 201개 bin 전체의 softmax 확률분포를 출력하고, 정답 bin의 확률을 높이도록 학습한다. 즉 201개의 독립적인 yes/no 분류기가 아니라 201-way classification이다.</p></div></div>
+        <div class="summary-item"><div class="summary-mark">\(\mathbb{E}\)</div><div><p class="summary-title">실행 때는 최고 확률 bin 하나가 아니라 분포의 평균을 value로 쓴다</p><p class="summary-desc">예를 들어 bin 100이 가장 높아도 주변 bin 95~110의 확률까지 반영해 연속 value를 만든다. 이렇게 얻은 더 세밀한 숫자로 advantage를 계산한다.</p></div></div>
+      </div>
       <div class="formula-stack">
         <div class="formula-step">
           <div class="formula-copy"><p class="formula-title">Distributional value loss</p><p class="formula-desc">모든 trajectory의 각 시점에서 관측된 return bin과 value distribution을 맞춘다.</p></div>
@@ -97,6 +102,15 @@ A^\pi(o_t, a_t, \ell) =
 \min_{\phi}\; \mathbb{E}_{\tau \sim D}\!\left[
 \sum_{o_t \in \tau} H\!\left(R_t^B(\tau),\; p_\phi(V \mid o_t, \ell)\right)
 \right]
+\]</div></div>
+        </div>
+      </div>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">201-way distribution → continuous value</p><p class="formula-desc">\(v(b)\)는 bin \(b\)가 나타내는 실제 value다. 이 기대값이 이후 advantage 계산에 들어간다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+V^{\pi_{\mathrm{ref}}}(o_t, \ell)
+= \sum_{b=0}^{200} p_\phi(V=b \mid o_t, \ell)\,v(b)
 \]</div></div>
         </div>
       </div>

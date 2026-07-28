@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow Matching 계보 쉽게 이해하기</title>
+  <script defer src="assets/js/mathjax-config.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
+  <link rel="stylesheet" href="assets/css/flow-matching-lineage.css" />
+</head>
+<body>
+  <main class="page lineage-page">
+    <nav class="topbar" aria-label="Page navigation">
+      <a class="brand" href="index.html">Learning Log</a>
+      <a class="back" href="flow_matching.html">← Back to Flow Matching</a>
+    </nav>
+
+    <section class="hero lineage-hero">
+      <div class="badge">Part 1 · Flow-based model visualization</div>
+      <h1>Flow Matching<br />계보 쉽게 이해하기</h1>
+      <p class="subtitle">Flow Matching으로 가기 전에 먼저 이해할 것. 이 영상은 “쉬운 Gaussian 분포를 어떻게 이미지 같은 복잡한 분포로 바꾸고, 그 결과의 확률은 어떻게 계산하는가?”를 설명한다.</p>
+      <a class="video-link" href="https://www.youtube.com/watch?v=SuRML3Aj4m0">영상 보기 ↗</a>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 0</p>
+      <h2>생성 모델이 풀고 싶은 문제</h2>
+      <p>이미지 데이터의 분포는 복잡하다. 하지만 Gaussian noise는 아주 쉽다. 그래서 쉽게 뽑을 수 있는 noise를 데이터처럼 보이는 sample로 바꾸는 규칙을 학습하고 싶다.</p>
+      <div class="goal-flow">
+        <div><span>쉬운 분포</span><strong><i>z</i> ∼ 𝒩(0, I)</strong><p>Gaussian noise는 sampling이 쉽다.</p></div>
+        <i aria-hidden="true">→</i>
+        <div><span>학습할 함수</span><strong><i>f</i></strong><p>noise의 위치를 data 쪽으로 옮긴다.</p></div>
+        <i aria-hidden="true">→</i>
+        <div><span>복잡한 분포</span><strong><i>x</i> = <i>f</i>(<i>z</i>)</strong><p>생성된 sample이 data처럼 보인다.</p></div>
+      </div>
+      <div class="callout"><strong>여기서 목표는 두 가지다.</strong> (1) noise에서 새로운 sample을 만들기, (2) 실제 data sample이 얼마나 그럴듯한지, 즉 likelihood를 계산하기.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 1</p>
+      <h2>왜 변환은 가역적이어야 할까?</h2>
+      <p>생성할 때는 noise에서 data 방향으로 가면 된다. 하지만 data의 likelihood를 계산하려면 주어진 data point가 어느 latent point에서 왔는지 역으로 찾아야 한다. 따라서 한 data point에 대응하는 latent point가 하나여야 한다.</p>
+      <div class="two-col">
+        <article class="concept-card"><p class="card-label">Generation</p><h3>앞으로 간다</h3><p>noise <i>z</i>를 넣고 <i>x</i> = <i>f</i>(<i>z</i>)를 계산한다.</p></article>
+        <article class="concept-card"><p class="card-label">Likelihood</p><h3>거꾸로 간다</h3><p>data <i>x</i>에서 <i>z</i> = <i>f</i><sup>−1</sup>(<i>x</i>)를 찾아 base density를 확인한다.</p></article>
+      </div>
+      <div class="limit-card"><span>핵심 조건</span><p>서로 다른 두 점이 같은 위치로 겹쳐 버리면, 역변환이 불가능해진다. Normalizing Flow는 이 문제를 피하기 위해 invertible transformation만 사용한다.</p></div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 2</p>
+      <h2>점만 움직이는 것이 아니라, density도 변한다</h2>
+      <p>여기서 “공간 변화까지 보정”이 처음 등장한다. 변환은 점의 위치를 바꾸지만, 같은 확률질량이 차지하는 공간의 크기도 바꾼다. 확률질량은 보존되지만 <strong>확률밀도</strong>는 바뀐다.</p>
+      <div class="density-board">
+        <article><strong>공간을 늘리면</strong><div class="dots spread">•&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;•</div><p>같은 질량이 넓게 퍼진다 → density 감소</p></article>
+        <article><strong>공간을 압축하면</strong><div class="dots tight">•••</div><p>같은 질량이 좁게 모인다 → density 증가</p></article>
+      </div>
+      <div class="callout"><strong>고무판과 잉크 비유.</strong> 고무판 위의 잉크 총량은 그대로다. 판을 늘리면 옅어지고, 압축하면 진해진다. 이 “넓이 변화 비율”이 바로 Jacobian determinant가 측정하는 대상이다.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 3 · 1D intuition</p>
+      <h2>1차원에서는 기울기로 density를 보정한다</h2>
+      <p>1차원 함수 <i>x</i> = <i>f</i>(<i>z</i>)를 생각하자. 어떤 지점에서 함수의 기울기가 크면 작은 latent 구간이 넓은 data 구간으로 늘어난다. 따라서 data 쪽 density는 줄어든다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">1D change of variables</p><p class="formula-desc">분모의 미분값 절댓값은 구간이 늘거나 줄어든 비율이다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+p_X(x)=p_Z(z)\left|\frac{dz}{dx}\right|
+=\frac{p_Z(z)}{\left|\frac{dx}{dz}\right|}
+\]</div></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <article class="concept-card"><p class="card-label">큰 기울기</p><h3>늘어남</h3><p>latent의 좁은 구간이 data의 넓은 구간이 된다. density는 낮아진다.</p></article>
+        <article class="concept-card"><p class="card-label">작은 기울기</p><h3>압축</h3><p>latent의 넓은 구간이 data의 좁은 구간에 모인다. density는 높아진다.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 4 · Multiple dimensions</p>
+      <h2>이미지처럼 고차원에서는 Jacobian determinant를 쓴다</h2>
+      <p>여러 차원에서는 한 개의 기울기 대신 Jacobian matrix가 모든 방향의 국소적인 변화를 나타낸다. 그 determinant의 절댓값이 작은 부피가 얼마나 늘거나 줄었는지를 알려준다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Change of variables</p><p class="formula-desc">base density와 부피 변화 보정을 결합하면 transformed density를 얻는다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+p_X(x)=p_Z\bigl(f^{-1}(x)\bigr)
+\left|\det\frac{\partial f^{-1}(x)}{\partial x}\right|
+\]</div></div>
+        </div>
+      </div>
+      <p class="section-note">따라서 density 보정은 “생성을 더 잘하기 위한 장치”가 아니라, 변환 후에도 data likelihood를 정확히 계산하기 위해 반드시 필요한 회계 장부다.</p>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 5</p>
+      <h2>왜 여러 개의 flow와 log를 쓸까?</h2>
+      <p>한 번의 단순한 변환으로는 복잡한 data distribution을 만들기 어렵다. 그래서 여러 invertible transformation을 차례대로 쌓는다. 각 단계의 volume change는 곱해지고, log를 취하면 합이 된다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Log-likelihood</p><p class="formula-desc">곱을 합으로 바꾸면 계산과 최적화가 안정적이다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\log p_X(x)=\log p_Z(z)+
+\sum_{k=1}^{K}\log\left|
+\det\frac{\partial f_k^{-1}}{\partial h_k}
+\right|
+\]</div></div>
+        </div>
+      </div>
+      <div class="limit-card"><span>설계의 숙제</span><p>모델은 충분히 유연해야 하지만 inverse와 determinant도 빨리 계산할 수 있어야 한다. NICE, RealNVP, Glow, MAF, IAF는 이 균형을 위한 대표 구조다.</p></div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Step 6</p>
+      <h2>학습과 생성에서 실제로 하는 일</h2>
+      <div class="train-sample">
+        <div><span>Training · likelihood</span><strong>data에서 latent로</strong><p>역변환으로 <i>z</i>를 찾고, base density와 log-determinant를 더해 likelihood를 최대화한다.</p></div>
+        <div><span>Generation · sampling</span><strong>noise에서 data로</strong><p>Gaussian noise를 뽑고, flow layer를 순서대로 적용해 새로운 sample을 얻는다.</p></div>
+      </div>
+    </section>
+
+    <section class="section takeaway">
+      <p class="section-kicker">Part 1 takeaway</p>
+      <h2>Normalizing Flow는 “가역 변환으로 noise를 data로 옮기고, 그 과정에서 공간이 늘고 줄어든 만큼 density를 정확히 보정하는 모델”이다.</h2>
+      <p>다음 단계에서는 이 discrete flow를 연속적인 움직임으로 바꾼 Neural ODE를 다룬다.</p>
+      <a class="video-link" href="https://www.youtube.com/watch?v=SuRML3Aj4m0">Flow-based Model 시각화 설명 영상 보기 ↗</a>
+    </section>
+
+    <section class="chapter-divider">
+      <span>Part 2</span>
+      <h2>Neural ODE: layer를 연속적인 시간으로 보기</h2>
+      <p>두 번째 영상의 내용이다. 이제 “변환 함수”를 한 번에 적용하는 대신, 현재 위치에서의 이동 방향을 계속 따라간다.</p>
+    </section>
+
+    <section class="section" id="neural-ode">
+      <p class="section-kicker">Neural ODE visualization</p>
+      <h2>미분방정식은 “다음 위치”가 아니라 “현재 변화율”을 말한다</h2>
+      <p>상태 <i>x</i>(<i>t</i>)가 있을 때, ODE는 현재 위치와 시간에서 얼마나, 어느 방향으로 움직여야 하는지를 정한다. 초기값과 이 규칙이 주어지면 미래의 전체 경로를 계산할 수 있다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Ordinary Differential Equation</p><p class="formula-desc">알고 싶은 것은 한 순간의 속도가 아니라 시간에 따라 변하는 전체 상태다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\frac{dx(t)}{dt}=f(x(t),t),\qquad x(t_0)=x_0
+\]</div></div>
+        </div>
+      </div>
+      <div class="callout"><strong>vector field.</strong> 공간의 모든 위치에 “여기에서는 이쪽으로 이만큼 움직여라”라는 화살표를 그려 둔 것이다. ODE는 한 점이 그 화살표를 계속 따라가는 규칙이다.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Numerical solving</p>
+      <h2>컴퓨터는 ODE를 작은 걸음으로 푼다</h2>
+      <p>복잡한 ODE는 정확한 수식을 바로 구하기 어렵다. 그래서 현재 위치의 변화율을 보고 아주 조금 이동하는 과정을 반복한다. 가장 기본적인 방법이 Euler method다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Euler step</p><p class="formula-desc">현재 화살표에 step size를 곱해 다음 위치를 근사한다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+x(t+\Delta t)\approx x(t)+\Delta t\,f(x(t),t)
+\]</div></div>
+        </div>
+      </div>
+      <div class="density-board">
+        <article><strong>작은 step size</strong><div class="dots spread">• · • · •</div><p>경로를 정교하게 근사하지만 function evaluation이 많아진다.</p></article>
+        <article><strong>큰 step size</strong><div class="dots tight">• — •</div><p>계산은 빠르지만 오차가 커지고 불안정해질 수 있다.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Neural ODE</p>
+      <h2>Neural ODE에서는 신경망이 화살표를 만든다</h2>
+      <p>일반 신경망은 입력을 받아 다음 layer의 state를 바로 계산한다. Neural ODE에서는 신경망 <i>f</i><sub>θ</sub>가 현재 state의 변화율을 출력하고, ODE solver가 그 출력을 반복 적용해 최종 state를 만든다.</p>
+      <div class="solver-board">
+        <article><span>Neural network <i>f</i><sub>θ</sub></span><strong>어느 방향으로 움직일까?</strong><p>현재 state와 time을 보고 velocity를 예측한다.</p></article>
+        <i aria-hidden="true">+</i>
+        <article><span>ODE solver</span><strong>얼마나 자주 이동할까?</strong><p>정확도 조건에 맞춰 state를 수치 적분한다.</p></article>
+      </div>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Neural ODE</p><p class="formula-desc">신경망은 결과 state가 아니라 변화율 함수를 parameterize한다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\frac{dz(t)}{dt}=f_\theta(z(t),t)
+\]</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Relation to ResNet</p>
+      <h2>ResNet을 아주 작은 residual step으로 보면</h2>
+      <p>ResNet의 residual block은 현재 state에 작은 변화를 더한다. 이는 Euler method와 같은 모양이다. Neural ODE는 이 discrete layer stack을 연속 시간으로 확장한 관점이다.</p>
+      <div class="two-col">
+        <article class="concept-card"><p class="card-label">ResNet</p><h3>정해진 깊이</h3><div class="formula">\[
+h_{k+1}=h_k+f_{\theta_k}(h_k)
+\]</div><p>각 layer의 parameter와 계산 횟수가 미리 정해져 있다.</p></article>
+        <article class="concept-card"><p class="card-label">Neural ODE</p><h3>연속적인 깊이</h3><div class="formula">\[
+\frac{dh(t)}{dt}=f_\theta(h(t),t)
+\]</div><p>solver가 정확도에 따라 실제 function evaluation 횟수를 정한다.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Solver cost</p>
+      <h2>NFE가 실제 계산량을 말해준다</h2>
+      <p><strong>NFE (Number of Function Evaluations)</strong>는 solver가 신경망 vector field를 호출한 횟수다. vector field가 매끄럽고 경로가 단순하면 적은 NFE로 충분할 수 있지만, 경로가 복잡하거나 높은 정확도를 요구하면 NFE가 늘어난다.</p>
+      <div class="limit-card"><span>중요한 구분</span><p>ODE solver는 신경망이 아니다. 신경망은 변화율을 학습하고, solver는 학습된 변화율을 사용해 경로를 계산한다.</p></div>
+    </section>
+
+    <section class="section takeaway">
+      <p class="section-kicker">Part 2 takeaway</p>
+      <h2>Neural ODE는 신경망이 상태의 다음 값을 직접 예측하는 대신, 현재 위치에서의 변화율을 학습하고 solver가 그 변화를 적분하게 하는 모델이다.</h2>
+      <p>다음 단계인 Continuous Normalizing Flow에서는 이 연속적인 움직임을 확률분포 전체를 옮기는 데 사용한다.</p>
+      <a class="video-link" href="https://www.youtube.com/watch?v=EhyrwwjVuWU">Neural ODE 시각화 영상 보기 ↗</a>
+    </section>
+
+    <section class="chapter-divider">
+      <span>Part 3</span>
+      <h2>Flow Matching: vector field를 효율적으로 배우기</h2>
+      <p>세 번째 영상의 내용이다. Neural ODE/CNF로 noise를 data로 옮길 수는 있는데, 그 vector field를 학습하는 과정이 비싸다는 문제에서 시작한다.</p>
+    </section>
+
+    <section class="section" id="continuous-normalizing-flow">
+      <p class="section-kicker">Continuous Normalizing Flow</p>
+      <h2>CNF는 분포 전체가 vector field를 따라 움직이는 모델이다</h2>
+      <p>Normalizing Flow의 여러 discrete layer를 연속 시간으로 바꾸면 Continuous Normalizing Flow(CNF)가 된다. 점 하나가 vector field를 따라 움직이면, 점들의 집합인 확률분포도 함께 움직인다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Generation ODE</p><p class="formula-desc">학습할 모델은 시간과 위치를 입력받아 velocity를 내는 vector field다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\frac{dx_t}{dt}=v_\theta(x_t,t)
+\]</div></div>
+        </div>
+      </div>
+      <div class="limit-card"><span>기존 CNF의 어려움</span><p>Maximum likelihood로 학습하려면 매 batch마다 ODE trajectory를 풀고, density 변화와 gradient까지 계산해야 한다. 이 simulation-based training이 대규모 모델에서 부담이 된다.</p></div>
+    </section>
+
+    <section class="section" id="flow-matching">
+      <p class="section-kicker">Flow Matching idea</p>
+      <h2>전체 경로를 미리 따라가지 말고, 한 시점의 올바른 방향을 맞춘다</h2>
+      <p>Flow Matching은 noise 분포에서 data 분포로 가는 probability path를 먼저 정한다. 그리고 모델이 그 경로 위에서 필요한 target velocity를 회귀하게 한다. 학습 때에는 ODE를 풀 필요가 없다.</p>
+      <div class="callout"><strong>핵심 전환.</strong> “ODE를 끝까지 적분한 결과가 좋은가?”를 학습하지 않고, “현재 위치와 시간에서 어느 방향으로 움직여야 하는가?”를 직접 supervised learning으로 학습한다.</div>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Flow Matching objective</p><p class="formula-desc">목표 vector field <i>u</i><sub>t</sub>를 모델 vector field <i>v</i><sub>θ</sub>가 맞춘다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\mathcal L_{\mathrm{FM}}(\theta)=
+\mathbb E_{t,\,x\sim p_t}\left[
+\left\|v_\theta(x,t)-u_t(x)\right\|^2
+\right]
+\]</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">The practical trick</p>
+      <h2>Conditional Flow Matching: 정답 velocity를 쉽게 만든다</h2>
+      <p>전체 data distribution의 target velocity는 직접 계산하기 어렵다. 대신 data sample 하나 <i>x</i><sub>1</sub>에 조건을 걸고, Gaussian noise <i>x</i><sub>0</sub>에서 그 sample로 가는 간단한 경로를 만든다.</p>
+      <div class="step-grid">
+        <article><span>1</span><p>data sample <i>x</i><sub>1</sub>과 noise <i>x</i><sub>0</sub>를 뽑는다.</p></article>
+        <article><span>2</span><p>random time <i>t</i> ∼ U[0, 1]를 뽑는다.</p></article>
+        <article><span>3</span><p>그 시간의 중간 sample <i>x</i><sub>t</sub>를 만든다.</p></article>
+        <article><span>4</span><p>그 지점의 target velocity를 MSE로 맞춘다.</p></article>
+      </div>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Linear conditional path</p><p class="formula-desc">noise와 data sample을 직선으로 잇는 가장 쉬운 예시다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+x_t=(1-t)x_0+t x_1,\qquad
+u_t=x_1-x_0
+\]</div></div>
+        </div>
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">CFM loss</p><p class="formula-desc">target은 sample pair에서 바로 계산되므로 학습 중 solver가 필요 없다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+\mathcal L_{\mathrm{CFM}}(\theta)=
+\mathbb E_{x_0,\,x_1,\,t}\left[
+\left\|v_\theta(x_t,t)-(x_1-x_0)\right\|^2
+\right]
+\]</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Why CFM is valid</p>
+      <h2>샘플별 방향을 평균내면 전체 분포의 방향이 된다</h2>
+      <p>같은 중간 위치 <i>x</i>를 여러 conditional path가 지날 수 있다. 전체 분포를 옮기는 marginal velocity는, 그 위치에 도달한 conditional velocity의 조건부 평균으로 표현된다.</p>
+      <div class="formula-stack">
+        <div class="formula-step">
+          <div class="formula-copy"><p class="formula-title">Conditional average</p><p class="formula-desc">논문의 핵심 정리는 CFM과 FM이 parameter에 대해 같은 gradient를 준다는 것이다.</p></div>
+          <div class="formula-body"><div class="formula">\[
+u_t(x)=\mathbb E\!\left[
+u_t(x\mid x_1)\mid x
+\right]
+\]</div></div>
+        </div>
+      </div>
+      <div class="callout"><strong>표지판 비유.</strong> 같은 교차로에서 사람마다 목적지는 다를 수 있다. 하지만 그곳을 지나는 사람들의 목적지 방향을 평균내면, 군중 전체를 data distribution 쪽으로 옮기는 표지판이 된다.</div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Training versus sampling</p>
+      <h2>학습은 solver 없이, 생성은 solver로</h2>
+      <div class="train-sample">
+        <div><span>Training</span><strong>한 시점만 보고 velocity 회귀</strong><p>random <i>t</i>, noise, data를 뽑고 MSE를 계산한다. 전체 ODE trajectory를 만들지 않으므로 병렬 학습이 쉽다.</p></div>
+        <div><span>Sampling</span><strong>noise에서 실제 경로를 적분</strong><p>학습된 <i>v</i><sub>θ</sub>를 가지고 Gaussian noise에서 시작해 ODE solver로 <i>t</i> = 1까지 이동한다.</p></div>
+      </div>
+      <div class="limit-card"><span>오해하지 않기</span><p>Flow Matching은 simulation-free <em>training</em>이다. sample을 만들 때는 여전히 Euler, Midpoint, Runge-Kutta 같은 ODE solver가 필요하다.</p></div>
+    </section>
+
+    <section class="section">
+      <p class="section-kicker">Path design</p>
+      <h2>경로가 단순할수록 sampling도 쉬워질 수 있다</h2>
+      <div class="compare-grid">
+        <article class="compare-card"><p class="compare-label">Diffusion path</p><h3>noise를 점진적으로 제거</h3><p>diffusion과 Flow Matching은 같은 probability path 관점에서 연결될 수 있다. 다만 경로의 변화가 마지막에 몰리거나 구불구불할 수 있다.</p></article>
+        <article class="compare-card emphasis"><p class="compare-label">Optimal Transport path</p><h3>직선적이고 일정한 이동</h3><p>OT conditional path는 sample pair 사이를 단순한 직선 trajectory로 연결한다. target velocity가 쉬워지고 적은 NFE의 가능성이 생긴다.</p></article>
+      </div>
+      <p class="section-note">Flow Matching이 언제나 diffusion보다 빠른 것은 아니다. 실제 효율은 path, coupling, model architecture, solver, required quality에 따라 달라진다.</p>
+    </section>
+
+    <section class="section takeaway">
+      <p class="section-kicker">Part 3 takeaway</p>
+      <h2>Flow Matching은 CNF의 vector field를, 전체 ODE simulation 대신 각 conditional path의 순간 velocity를 직접 맞추며 학습하는 방법이다.</h2>
+      <a class="video-link" href="https://www.youtube.com/watch?v=wFikV0Y7NIk&t=60s">Flow Matching, but Animated 영상 보기 ↗</a>
+    </section>
+  </main>
+</body>
+</html>
