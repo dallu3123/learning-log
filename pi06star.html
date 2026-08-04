@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script defer src="assets/js/mathjax-config.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+  <script defer src="assets/js/pi06star.js"></script>
   <title>π*0.6 | Learning Log</title>
   <link rel="stylesheet" href="assets/css/fpo-plus-plus.css" />
 </head>
@@ -66,7 +67,7 @@
       <p class="section-kicker">Mathematical Foundation</p>
       <h2>Value가 “지금 행동이 얼마나 좋은가”를 판단한다</h2>
       <p>
-        상태 \(o_t\), action \(a_t\), task instruction \(\ell\)이 있을 때, policy는 \(\pi(a_t \mid o_t, \ell)\)로 쓴다.
+        상태 \(o_t\), action vector \(\mathbf a_t\), task instruction \(\ell\)이 있을 때, policy는 \(\pi(\mathbf a_t \mid o_t, \ell)\)로 쓴다.
         RECAP의 value function은 단순히 성공/실패만 예측하는 분류기가 아니라, 현재 상태에서 앞으로 얻을 return을 예측하는 critic이다.
       </p>
       <div class="formula-stack">
@@ -80,7 +81,7 @@ V^\pi(o_t, \ell) = \mathbb{E}\!\left[\sum_{t'=t}^{T} r_{t'} \mid o_t, \ell\right
         <div class="formula-step">
           <div class="formula-copy"><p class="formula-title">Advantage</p><p class="formula-desc">\(A^\pi\)는 현재 action이 value function의 예상보다 얼마나 더 좋거나 나쁜지를 나타낸다. 양수면 예상보다 좋은 진행, 음수면 나쁜 진행에 가깝다.</p></div>
           <div class="formula-body"><div class="formula">\[
-A^\pi(o_t, a_t, \ell) =
+A^\pi(o_t, \mathbf a_t, \ell) =
 \mathbb{E}\!\left[\sum_{t'=t}^{t+N-1} r_{t'} + V^\pi(o_{t+N}, \ell)\right]
 - V^\pi(o_t, \ell)
 \]</div></div>
@@ -156,15 +157,15 @@ r_t =
         <div class="formula-step">
           <div class="formula-copy"><p class="formula-title">Improvement indicator</p><p class="formula-desc">행동이 reference policy의 기대보다 충분히 좋으면 positive로 label한다. 사람의 intervention action은 positive로 취급한다.</p></div>
           <div class="formula-body"><div class="formula">\[
-I_t = \mathbb{1}\!\left[A^{\pi_{\mathrm{ref}}}(o_t, a_t, \ell) > \epsilon_\ell\right]
+I_t = \mathbb{1}\!\left[A^{\pi_{\mathrm{ref}}}(o_t, \mathbf a_t, \ell) > \epsilon_\ell\right]
 \]</div></div>
         </div>
         <div class="formula-step">
           <div class="formula-copy"><p class="formula-title">Conditional policy objective</p><p class="formula-desc">같은 data를 unconditional policy와 advantage-conditioned policy 양쪽으로 학습한다. 그래서 가능한 모든 data를 버리지 않고 활용하면서, positive 조건에서는 개선된 action distribution을 추출한다.</p></div>
           <div class="formula-body"><div class="formula">\[
 \min_\theta\; \mathbb{E}_{D^{\pi_{\mathrm{ref}}}}\!\left[
--\log \pi_\theta(a_t \mid o_t, \ell)
-- \alpha \log \pi_\theta(a_t \mid I_t, o_t, \ell)
+-\log \pi_\theta(\mathbf a_t \mid o_t, \ell)
+- \alpha \log \pi_\theta(\mathbf a_t \mid I_t, o_t, \ell)
 \right]
 \]</div></div>
         </div>
@@ -173,6 +174,133 @@ I_t = \mathbb{1}\!\left[A^{\pi_{\mathrm{ref}}}(o_t, a_t, \ell) > \epsilon_\ell\r
         이 설계는 flow matching action expert와 잘 맞는다. flow model은 explicit action likelihood를 계산하기 어려워 PPO를 그대로 쓰기 까다로운데,
         RECAP은 supervised-style conditional training으로 discrete output과 continuous flow-matching loss를 함께 최적화한다.
       </p>
+    </section>
+
+    <section class="section collapsible" id="eq4-explainer">
+      <button class="section-header" type="button" aria-expanded="false" aria-controls="eq4-explainer-content">
+        <div class="section-heading">
+          <p class="section-kicker">Eq. (4) Detailed</p>
+          <h2>실제 VLA action loss는 무엇을 최소화하는가?</h2>
+        </div>
+        <span class="section-indicator" aria-hidden="true">+</span>
+      </button>
+      <div class="section-content" id="eq4-explainer-content" hidden>
+        <p>
+          Eq. (4)는 loss 그 자체가 아니라, advantage 조건이 주어진 action의 <strong>log-likelihood에 대한 계산 가능한 lower bound</strong>다.
+          따라서 오른쪽 항을 크게 만드는 것, 즉 부호를 뒤집은 loss를 작게 만드는 것이 학습 목표다.
+        </p>
+        <div class="formula-stack">
+          <div class="formula-step">
+            <div class="formula-copy"><p class="formula-title">Eq. (4): action likelihood lower bound</p><p class="formula-desc">연속 action의 정확한 likelihood는 flow model에서 바로 계산하기 어렵다. 논문은 FAST의 autoregressive likelihood와 flow-matching MSE를 결합한 하한을 사용한다.</p></div>
+            <div class="formula-body"><div class="formula">\[
+\log \pi_\theta\!\left(\mathbf a_{t:t+H},a^\ell_{t:t+H}\mid I_t,o_t,\ell,\hat\ell\right)
+\ge
+\mathbb{E}_{\eta,\boldsymbol\omega}\!\left[
+\log p_\theta\!\left(a^\ell_{t:t+H}\mid I_t,o_t,\ell,\hat\ell\right)
+-\alpha_\eta\left\|\boldsymbol\omega-\mathbf a_{t:t+H}-f_\theta\!\left(\mathbf a^{\eta,\boldsymbol\omega}_{t:t+H},I_t,o_t,\ell,\hat\ell\right)\right\|^2
+\right]
+\]</div></div>
+          </div>
+        </div>
+        <div class="summary-list">
+          <div class="summary-item"><div class="summary-mark">L</div><div><p class="summary-title">왼쪽: 모델이 높은 확률을 주고 싶은 정답</p><p class="summary-desc">현재 관측 \(o_t\), task \(\ell\), subtask \(\hat\ell\), advantage indicator \(I_t\)가 주어졌을 때, 실제 continuous action chunk \(\mathbf a_{t:t+H}\)와 FAST token action \(a^\ell_{t:t+H}\)을 모두 잘 생성할 확률이다. bold \(\mathbf a\)는 여러 관절·gripper command를 묶은 vector/tensor임을 뜻한다.</p></div></div>
+          <div class="summary-item"><div class="summary-mark">CE</div><div><p class="summary-title">첫째 항: FAST discrete action token cross-entropy</p><p class="summary-desc">\(-\log p_\theta(a^\ell\mid I_t,o_t,\ell,\hat\ell)\)를 최소화한다. VLM backbone은 <code>Advantage: positive</code> 또는 <code>negative</code> 조건 아래에서 정답 FAST token sequence를 autoregressive하게 맞힌다.</p></div></div>
+          <div class="summary-item"><div class="summary-mark">FM</div><div><p class="summary-title">둘째 항: continuous action expert의 flow-matching MSE</p><p class="summary-desc">action expert는 noisy continuous action을 받아 정답 vector field \(\boldsymbol\omega-\mathbf a_{t:t+H}\)를 예측한다. 이 항의 \(\alpha_\eta\)는 flow time에 따른 loss weight다.</p></div></div>
+        </div>
+        <div class="formula-stack">
+          <div class="formula-step">
+            <div class="formula-copy"><p class="formula-title">Noisy action을 만드는 과정</p><p class="formula-desc">\(\eta\)는 flow time, \(\boldsymbol\omega\)는 action chunk와 같은 shape의 Gaussian noise tensor다. \(\eta=0\)이면 noise, \(\eta=1\)이면 실제 정답 action이 된다.</p></div>
+            <div class="formula-body"><div class="formula">\[
+\mathbf a^{\eta,\boldsymbol\omega}_{t:t+H}=\eta\mathbf a_{t:t+H}+(1-\eta)\boldsymbol\omega,
+\qquad \boldsymbol\omega\sim\mathcal N(0,I)
+\]</div></div>
+          </div>
+          <div class="formula-step">
+            <div class="formula-copy"><p class="formula-title">실제로 최소화하는 action loss</p><p class="formula-desc">Eq. (4)의 오른쪽 lower bound에 음수를 붙인 형태다. discrete branch와 continuous branch를 동시에 학습한다.</p></div>
+            <div class="formula-body"><div class="formula">\[
+\mathcal L_{\mathrm{action}}
+=
+\underbrace{-\log p_\theta(a^\ell\mid I,o,\ell,\hat\ell)}_{\text{FAST token CE}}
++
+\underbrace{\mathbb E_{\eta,\boldsymbol\omega}\!\left[\alpha_\eta\left\|(\boldsymbol\omega-\mathbf a)-f_\theta(\mathbf a^{\eta,\boldsymbol\omega},I,o,\ell,\hat\ell)\right\|^2\right]}_{\text{continuous flow-matching MSE}}
+\]</div></div>
+          </div>
+        </div>
+        <div class="fast-figure-intro">
+          <p class="section-kicker">High-school walkthrough</p>
+          <h3>처음부터: 왜 action의 확률을 MSE로 학습할 수 있을까?</h3>
+          <p>
+            먼저 로봇이 해야 할 정답을 하나의 <strong>연속 action chunk</strong> \(\mathbf a\)라고 하자. 예를 들어 0.5초 동안 각 관절을 어느 방향으로 얼마나 움직일지, gripper를 열지 닫을지가 모두 들어 있는 숫자 묶음이다. 우리가 원하는 것은 이미지와 명령이 주어졌을 때 이 정답 \(\mathbf a\)를 <strong>높은 확률로</strong> 만들어 내는 policy다.
+          </p>
+          <p>
+            그런데 flow model은 “정답 action의 확률이 정확히 몇 %인가?”를 바로 계산하기가 어렵다. 대신 학습 때 정답 action에 Gaussian noise \(\boldsymbol\omega\)를 섞어, 일부러 알아보기 힘든 noisy action을 만든다. 그리고 모델에게 <strong>“이 noisy action에서 정답 action으로 가려면 어느 방향으로 움직여야 할까?”</strong>를 묻는다.
+          </p>
+          <div class="formula-stack">
+            <div class="formula-step">
+              <div class="formula-copy"><p class="formula-title">1. 정답에 noise를 섞는다</p><p class="formula-desc">\(\eta\)가 작으면 noise가 많이 섞여 있고, \(\eta\)가 커질수록 원래 action이 더 잘 보인다.</p></div>
+              <div class="formula-body"><div class="formula">\[
+\mathbf a^{\eta,\boldsymbol\omega}
+=
+\eta\mathbf a+(1-\eta)\boldsymbol\omega,
+\qquad
+\boldsymbol\omega\sim\mathcal N(0,I)
+\]</div></div>
+            </div>
+            <div class="formula-step">
+              <div class="formula-copy"><p class="formula-title">2. 모델이 맞혀야 할 답은 ‘정답으로 향하는 화살표’다</p><p class="formula-desc">noise 위치 \(\boldsymbol\omega\)에서 실제 action \(\mathbf a\)까지 가는 화살표는 \(\boldsymbol\omega-\mathbf a\)다. 논문의 sampling 방향 표기 때문에 부호가 다소 직관과 반대로 보일 수 있지만, 핵심은 모델이 이 vector field를 맞히는 것이다.</p></div>
+              <div class="formula-body"><div class="formula">\[
+\text{target vector field}=\boldsymbol\omega-\mathbf a,
+\qquad
+f_\theta(\mathbf a^{\eta,\boldsymbol\omega},\text{condition})
+\approx
+\boldsymbol\omega-\mathbf a
+\]</div></div>
+            </div>
+          </div>
+          <p>
+            여기까지는 단순히 “화살표 맞히기”처럼 보인다. 이제 이것이 확률과 연결되는 이유를 보자. 한 noise 상태에서 model이 예측한 화살표가 \(f_\theta\)라면, 논문이 사용하는 one-step Gaussian 관점에서는 model이 생각하는 정답 action의 중심을
+            \(\boldsymbol\mu_\theta=\boldsymbol\omega-f_\theta\)로 볼 수 있다. 모델이 화살표를 정확히 맞혀 \(f_\theta=\boldsymbol\omega-\mathbf a\)라면, 이 중심은 \(\boldsymbol\mu_\theta=\mathbf a\)가 된다. 즉 Gaussian의 가장 높은 곳이 진짜 정답 action 위에 놓인다.
+          </p>
+          <div class="formula-stack">
+            <div class="formula-step">
+              <div class="formula-copy"><p class="formula-title">3. Gaussian은 중심에서 멀수록 확률을 작게 준다</p><p class="formula-desc">정답 \(\mathbf a\)가 model의 Gaussian 중심 \(\boldsymbol\omega-f_\theta\)에서 멀수록 negative log-likelihood가 커진다. Gaussian에서는 이 벌점이 거리의 제곱이다.</p></div>
+              <div class="formula-body"><div class="formula">\[
+-\log p_\theta(\mathbf a\mid\boldsymbol\omega,\text{condition})
+=
+\frac{1}{2\sigma^2}
+\left\|
+\mathbf a-(\boldsymbol\omega-f_\theta)
+\right\|^2+C
+=
+\frac{1}{2\sigma^2}
+\left\|
+f_\theta-(\boldsymbol\omega-\mathbf a)
+\right\|^2+C
+\]</div></div>
+            </div>
+          </div>
+          <p>
+            마지막 등식이 핵심이다. 왼쪽은 “정답 action에 낮은 확률을 주었을 때의 벌점”, 즉 NLL이다. 오른쪽은 “모델이 예측한 화살표와 정답 화살표의 차이”의 제곱, 즉 flow-matching MSE다. 따라서 이 <strong>one-step Gaussian 보조 문제</strong>에서는 화살표 MSE를 줄이는 것이 정답 action의 NLL을 줄이는 것과 같은 방향이다.
+          </p>
+          <p>
+            다만 실제 flow policy는 한 가지 noise 상태만 쓰지 않는다. 다양한 \(\eta\), 다양한 \(\boldsymbol\omega\)에 대해 이 문제를 평균내며, 전체 continuous-action likelihood를 정확히 적분하는 대신 계산 가능한 <strong>lower bound, ELBO</strong>를 최대화한다. 그래서 Eq. (4)의 MSE는 “exact action NLL 그 자체”가 아니라, <strong>action NLL을 낮추도록 만드는 ELBO 학습 신호</strong>라고 부르는 것이 정확하다.
+          </p>
+          <p>
+            한 문장으로 정리하면, <strong>“정답 action에 noise를 섞고, 그 noise를 정답으로 되돌리는 방향을 맞히게 한다. Gaussian에서는 그 방향 오차의 제곱이 정답 action에 낮은 확률을 준 벌점과 연결되므로, MSE를 줄이면 정답 action을 생성할 가능성이 커진다.”</strong></p>
+        </div>
+        <div class="fast-figure-intro">
+          <p class="section-kicker">Important distinction</p>
+          <h3>Advantage는 loss weight가 아니라 action의 조건이다</h3>
+          <p>
+            \(A_t\)를 loss에 직접 곱하는 PPO식 학습이 아니다. value function이 만든 \(I_t\in\{\text{positive},\text{negative}\}\)를 text input으로 넣고,
+            모든 dataset action에 대해 동일한 CE + flow-matching loss를 계산한다. 좋은 action은 positive 조건에서, 좋지 않은 action은 negative 조건에서 모방한다.
+          </p>
+        </div>
+        <p>
+          논문 구현에서는 advantage indicator를 30% 확률로 dropout한다. 그래서 매 sample마다 conditional 또는 unconditional branch 하나를 학습하며,
+          추론 때는 positive 조건을 직접 사용하거나 classifier-free guidance로 conditional·unconditional prediction을 조합할 수 있다.
+        </p>
+      </div>
     </section>
 
     <section class="section">
